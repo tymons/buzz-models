@@ -22,9 +22,9 @@ def main(argv):
         elif opt in ("-p", "--password"):
             password = arg
 
-    sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884")
-    token = sma.get_token()
-    print(token)
+    sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
+    samples = sma.get_sound(1300001, 119)
+    print(samples)
 
 
 if __name__ == "__main__":
