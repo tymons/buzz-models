@@ -1,4 +1,5 @@
-import sys, getopt
+import getopt
+import sys
 
 from smartula_ask import SmartulaAsk
 
