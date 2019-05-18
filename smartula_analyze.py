@@ -18,6 +18,11 @@ def save_to_file(filename, samples):
 
 
 def read_from_csv(file_name):
+    """
+    Function for reading samples from csv file
+    :param file_name:   filename
+    :return:            sample list
+    """
     samples = []
     with open(file_name, mode='r') as csv_file:
         file_reader = csv.reader(csv_file, delimiter=' ', lineterminator='\n')
@@ -32,12 +37,12 @@ def main(argv):
     username = ''
     password = ''
     file_name = ''
-    sound_id = 460
+    sound_id = 0
 
     try:
-        opts, args = getopt.getopt(argv, "hu:p:f:", ["username=", "password=", "file="])
+        opts, args = getopt.getopt(argv, "hu:p:s:f:", ["username=", "password=", "sound=", "file="])
     except getopt.GetoptError:
-        print('smartula_analyze.py [-u <username> -p <password>] [--f <path_to_file>]')
+        print('smartula_analyze.py [-u <username> -p <password> -s <sound_id>] [--f <path_to_file>]')
         sys.exit(2)
 
     for opt, arg in opts:
@@ -46,6 +51,8 @@ def main(argv):
             sys.exit()
         elif opt in ("-u", "--username"):
             username = arg
+        elif opt in ("-s", "--sound"):
+            sound_id = arg
         elif opt in ("-p", "--password"):
             password = arg
         elif opt in ("-f", "--file"):
