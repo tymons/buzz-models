@@ -1,16 +1,38 @@
 import getopt
 import sys
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
+import csv
 from smartula_ask import SmartulaAsk
+from smartula_sound import SmartulaSound
+
+
+def save_to_file(filename, samples):
+    """
+    Function for saving samples in csv file
+    :param filename:    filename
+    :param samples:     list of samples
+    """
+    with open(filename, mode='w') as csv_file:
+        file_writer = csv.writer(csv_file, delimiter=' ', lineterminator='\n')
+        for sample in samples:
+            file_writer.writerow([sample])
+
+
+def read_from_csv(file_name):
+    samples = []
+    with open(file_name, mode='r') as csv_file:
+        file_reader = csv.reader(csv_file, delimiter=' ', lineterminator='\n')
+        for row in file_reader:
+            if row:
+                samples.append(float(row[0]))
+
+    return samples
 
 
 def main(argv):
     username = ''
     password = ''
     file_name = ''
+    sound_id = 460
 
     try:
         opts, args = getopt.getopt(argv, "hu:p:f:", ["username=", "password=", "file="])
@@ -31,15 +53,16 @@ def main(argv):
 
     if file_name:
         # Read CSV
-        samples = pd.read_csv(file_name)
-        print(samples.head())
-        samples.plot()
-        plt.show()
+        samples = read_from_csv(file_name)
+        sms = SmartulaSound(samples)
+        sms.get_fft()
+        print('End!')
 
     else:
         sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
-        samples = sma.get_sound(1300001, 119)
-        print(samples)
+        samples = sma.get_sound(1300001, sound_id)
+        save_to_file((str(sound_id) + '.csv'), samples)
+        print('Success at sound (' + str(sound_id) + ') download!')
 
 
 if __name__ == "__main__":
