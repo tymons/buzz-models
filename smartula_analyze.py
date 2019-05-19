@@ -64,7 +64,6 @@ def main(argv):
         sms = SmartulaSound(samples)
         sms.get_fft()
         print('End!')
-
     else:
         sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
         samples = sma.get_sound(1300001, sound_id)
