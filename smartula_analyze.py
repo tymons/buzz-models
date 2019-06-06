@@ -33,11 +33,26 @@ def read_from_csv(file_name):
     return samples
 
 
+def parse_range_string(sound_ids):
+    for char in ["[", "]"]:
+        sound_ids = sound_ids.replace(char, '')
+
+    sound_from_id, sound_to_id = sound_ids.split(':')
+    sound_from_id, sound_to_id = int(sound_from_id), int(sound_to_id)
+    return list(range(sound_from_id, sound_to_id))
+
+
+def __get_sound_and_save_to_file(sma, sound_id):
+    samples = sma.get_sound(1300001, sound_id)
+    save_to_file((str(sound_id) + '.csv'), samples)
+    print('Success at sound (' + str(sound_id) + ') download!')
+
+
 def main(argv):
     username = ''
     password = ''
     file_name = ''
-    sound_id = 0
+    sound = 0
 
     try:
         opts, args = getopt.getopt(argv, "hu:p:s:f:", ["username=", "password=", "sound=", "file="])
@@ -52,7 +67,7 @@ def main(argv):
         elif opt in ("-u", "--username"):
             username = arg
         elif opt in ("-s", "--sound"):
-            sound_id = arg
+            sound = arg
         elif opt in ("-p", "--password"):
             password = arg
         elif opt in ("-f", "--file"):
@@ -66,9 +81,13 @@ def main(argv):
         print('End!')
     else:
         sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
-        samples = sma.get_sound(1300001, sound_id)
-        save_to_file((str(sound_id) + '.csv'), samples)
-        print('Success at sound (' + str(sound_id) + ') download!')
+        try:
+            sound_id = int(sound)
+            __get_sound_and_save_to_file(sma, sound_id)
+        except ValueError:
+            sound_ids = parse_range_string(sound)
+            for sound_id in sound_ids:
+                __get_sound_and_save_to_file(sma, sound_id)
 
 
 if __name__ == "__main__":
