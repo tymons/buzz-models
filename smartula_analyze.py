@@ -1,6 +1,7 @@
 import getopt
 import sys
 import csv
+import os
 from smartula_ask import SmartulaAsk
 from smartula_sound import SmartulaSound
 
@@ -33,18 +34,21 @@ def read_from_csv(file_name):
     return samples
 
 
-def parse_range_string(sound_ids):
+def __parse_range_string(sound_ids):
     for char in ["[", "]"]:
         sound_ids = sound_ids.replace(char, '')
 
     sound_from_id, sound_to_id = sound_ids.split(':')
     sound_from_id, sound_to_id = int(sound_from_id), int(sound_to_id)
-    return list(range(sound_from_id, sound_to_id))
+    return list(range(sound_from_id, sound_to_id + 1))
 
 
 def __get_sound_and_save_to_file(sma, sound_id):
-    samples = sma.get_sound(1300001, sound_id)
-    save_to_file((str(sound_id) + '.csv'), samples)
+    samples, timestamp = sma.get_sound(1300001, sound_id)
+    if os.name == 'nt':
+        timestamp = timestamp.replace(":", "-")
+
+    save_to_file("csv/" + str(timestamp) + ".csv", samples)
     print('Success at sound (' + str(sound_id) + ') download!')
 
 
@@ -81,6 +85,14 @@ def main(argv):
         print('End!')
     else:
         sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
+
+        # Create folder for CSVs
+        try:
+            os.mkdir("csv")
+        except FileExistsError:
+            print("Folder already exists.")
+
+        # Get actual samples
         try:
             sound_id = int(sound)
             __get_sound_and_save_to_file(sma, sound_id)

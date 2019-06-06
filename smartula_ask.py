@@ -22,4 +22,5 @@ class SmartulaAsk:
         params = {'soundId': sound_id}
         headers = {'token': self._token}
         response = requests.get(url, headers=headers, params=params)
-        return json.loads(response.text)['samples']
+        response = json.loads(response.text)
+        return response['samples'], response['timestamp']
