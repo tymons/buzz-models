@@ -97,7 +97,7 @@ def main(argv):
             sound_id = int(sound)
             __get_sound_and_save_to_file(sma, sound_id)
         except ValueError:
-            sound_ids = parse_range_string(sound)
+            sound_ids = __parse_range_string(sound)
             for sound_id in sound_ids:
                 __get_sound_and_save_to_file(sma, sound_id)
 
