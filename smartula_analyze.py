@@ -2,6 +2,10 @@ import getopt
 import sys
 import csv
 import os
+import glob
+import pandas as pd
+import numpy as np
+
 from smartula_ask import SmartulaAsk
 from smartula_sound import SmartulaSound
 
@@ -52,6 +56,13 @@ def __get_sound_and_save_to_file(sma, sound_id):
     print('Success at sound (' + str(sound_id) + ') download!')
 
 
+def __mfcc_classification(folder_name):
+    os.chdir(folder_name)
+    all_filenames = [i for i in glob.glob("*.{}".format("csv"))]
+    list_of_audios = [SmartulaSound(np.ravel(pd.read_csv(f, header=None)), f, False) for f in all_filenames]
+    return list_of_audios
+
+
 def main(argv):
     username = ''
     password = ''
@@ -83,7 +94,7 @@ def main(argv):
         sms = SmartulaSound(samples)
         sms.get_fft()
         print('End!')
-    else:
+    elif username and password:
         sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
 
         # Create folder for CSVs
@@ -100,6 +111,10 @@ def main(argv):
             sound_ids = __parse_range_string(sound)
             for sound_id in sound_ids:
                 __get_sound_and_save_to_file(sma, sound_id)
+    else:
+        # Analyze whole csv folder
+        print("Smartula analyze start!")
+        __mfcc_classification("csv/")
 
 
 if __name__ == "__main__":

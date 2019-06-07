@@ -1,18 +1,29 @@
-import numpy as np
 import seaborn as sns
-from scipy.signal import windows
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from python_speech_features import mfcc
+from scipy.signal import windows
 from scipy.fftpack import fft
 from scipy.signal import spectrogram
+
+import numpy as np
+
+
+def calculate_mfcc(samples):
+    mfcc_coefs = mfcc(signal=samples, samplerate=3000,
+                      winlen=0.5, winstep=1, nfft=len(samples))
+    return mfcc_coefs
 
 
 class SmartulaSound:
 
-    def __init__(self, samples):
-        array = np.array(samples).astype(float)
+    def __init__(self, samples, timestamp, electromagnetic_field_on):
+        array = np.array(samples[0:1500]).astype(float)
         self.samples = array - array.mean()
+        self.timestamp = timestamp
+        self.electromagnetic_field_on = electromagnetic_field_on
+        self.mfcc_feature_vector = calculate_mfcc(np.array(self.samples))
 
     def get_fft(self):
         no_samples = len(self.samples)
@@ -38,4 +49,3 @@ class SmartulaSound:
         f, t, Sxx = spectrogram(self.samples, fs, window='hann')
         plt.pcolormesh(t, f, Sxx)
         plt.show()
-
