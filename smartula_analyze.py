@@ -83,7 +83,7 @@ def __prepare_mfcc_in_folder(folder_with_sounds, mfcc_folder_name):
         print("Folder " + mfcc_folder_name + " already exists.")
     for smartula_audio in list_of_audios:
         save_to_file(mfcc_folder_name + "/" +
-                     str(smartula_audio.electromagnetic_field_on) + smartula_audio.timestamp,
+                     str(smartula_audio.electromagnetic_field_on) + " " + smartula_audio.timestamp,
                      smartula_audio.mfcc_feature_vector)
 
 
