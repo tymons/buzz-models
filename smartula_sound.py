@@ -13,7 +13,8 @@ import numpy as np
 def calculate_mfcc(samples):
     mfcc_coefs = mfcc(signal=samples, samplerate=3000,
                       winlen=0.5, winstep=1, nfft=len(samples))
-    return mfcc_coefs
+    # Return vector
+    return np.ravel(mfcc_coefs)
 
 
 class SmartulaSound:

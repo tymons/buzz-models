@@ -56,9 +56,10 @@ def __get_sound_and_save_to_file(sma, sound_id):
     print('Success at sound (' + str(sound_id) + ') download!')
 
 
-def __mfcc_classification(folder_name):
+def __prepare_sound_with_mfcc(folder_name):
     os.chdir(folder_name)
     all_filenames = [i for i in glob.glob("*.{}".format("csv"))]
+    all_filenames = all_filenames[:10]
     list_of_audios = [SmartulaSound(np.ravel(pd.read_csv(f, header=None)), f, False) for f in all_filenames]
     return list_of_audios
 
@@ -114,7 +115,8 @@ def main(argv):
     else:
         # Analyze whole csv folder
         print("Smartula analyze start!")
-        __mfcc_classification("csv/")
+        list_of_audios = __prepare_sound_with_mfcc("csv/")
+        print("We got " + str(len(list_of_audios)) + " audio samples")
 
 
 if __name__ == "__main__":
