@@ -5,6 +5,7 @@ import os
 import glob
 import pandas as pd
 import numpy as np
+import datetime
 
 from smartula_ask import SmartulaAsk
 from smartula_sound import SmartulaSound
@@ -56,11 +57,23 @@ def __get_sound_and_save_to_file(sma, sound_id):
     print('Success at sound (' + str(sound_id) + ') download!')
 
 
-def __prepare_sound_with_mfcc(folder_name):
+def __affected(datetime_string, list_of_tuples_interval):
+    is_affected = False
+    date_time_obj = datetime.datetime.strptime(datetime_string, "%Y-%m-%dT%H-%M-%S")
+    for interval in list_of_tuples_interval:
+        from_datetime_obj = datetime.datetime.strptime(interval[0], "%Y-%m-%dT%H-%M-%S")
+        to_datetime_obj = datetime.datetime.strptime(interval[1], "%Y-%m-%dT%H-%M-%S")
+        is_affected |= (from_datetime_obj < date_time_obj < to_datetime_obj)
+
+    return is_affected
+
+
+def __change_directory_prepare_sound_with_mfcc(folder_name, list_of_tuples_interval):
     os.chdir(folder_name)
     all_filenames = [i for i in glob.glob("*.{}".format("csv"))]
-    all_filenames = all_filenames[:10]
-    list_of_audios = [SmartulaSound(np.ravel(pd.read_csv(f, header=None)), f, False) for f in all_filenames]
+    list_of_audios = [SmartulaSound(np.ravel(pd.read_csv(f, header=None)), f,
+                                    __affected(f.replace(".csv", ""), list_of_tuples_interval))
+                      for f in all_filenames]
     return list_of_audios
 
 
@@ -115,8 +128,21 @@ def main(argv):
     else:
         # Analyze whole csv folder
         print("Smartula analyze start!")
-        list_of_audios = __prepare_sound_with_mfcc("csv/")
+        list_of_audios = __change_directory_prepare_sound_with_mfcc("csv/",
+                                                                    [("2019-06-04T18-22-00", "2019-06-04T20-30-00"),
+                                                                     ("2019-06-05T20-46-00", "2019-06-05T23-48-00"),
+                                                                     ("2019-06-06T22-23-00", "2019-06-07T05-52-00")])
+
+        try:
+            os.mkdir("mfcc-electromagnetic-field")
+        except FileExistsError:
+            print("Folder already exists.")
+        for smartula_audio in list_of_audios:
+            save_to_file("mfcc-electromagnetic-field/" +
+                         str(smartula_audio.electromagnetic_field_on) + " " + smartula_audio.timestamp,
+                         smartula_audio.mfcc_feature_vector)
         print("We got " + str(len(list_of_audios)) + " audio samples")
+        print("Smartula analyze end!")
 
 
 if __name__ == "__main__":

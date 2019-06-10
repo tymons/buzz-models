@@ -11,8 +11,9 @@ import numpy as np
 
 
 def calculate_mfcc(samples):
-    mfcc_coefs = mfcc(signal=samples, samplerate=3000,
-                      winlen=0.5, winstep=1, nfft=len(samples))
+    sampling_rate = 3000
+    mfcc_coefs = mfcc(signal=samples, samplerate=sampling_rate,
+                      winlen=0.5, winstep=1, nfft=sampling_rate//2)   # Overlapping zeros
     # Return vector
     return np.ravel(mfcc_coefs)
 
