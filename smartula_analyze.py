@@ -6,65 +6,33 @@ import glob
 import pandas as pd
 import numpy as np
 import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from pathlib import Path, PurePath
 
 from smartula_ask import SmartulaAsk
 from smartula_sound import SmartulaSound
+from sklearn.manifold import TSNE
+from bokeh.plotting import figure, show, output_file
+from bokeh.models import ColumnDataSource
 
 
-def main(argv):
-    username = ''
-    password = ''
-    file_name = ''
-    sound = 0
+def print_with_bokeh(data_frame):
 
-    try:
-        opts, args = getopt.getopt(argv, "hu:p:s:f:", ["username=", "password=", "sound=", "file="])
-    except getopt.GetoptError:
-        print('smartula_analyze.py [-u <username> -p <password> -s <sound_id>] [--f <path_to_file>]')
-        sys.exit(2)
+    data_frame['colors'] = ["#003399" if elfield == "True" else "#ff0000" for elfield in data_frame['elfield']]
+    source = ColumnDataSource(data=data_frame)
 
-    for opt, arg in opts:
-        if opt == '-h':
-            print('smartula_analyze.py -u <username> -p <password>')
-            sys.exit()
-        elif opt in ("-u", "--username"):
-            username = arg
-        elif opt in ("-s", "--sound"):
-            sound = arg
-        elif opt in ("-p", "--password"):
-            password = arg
-        elif opt in ("-f", "--file"):
-            file_name = arg
-
-    if file_name:
-        # Read CSV
-        samples = read_from_csv(file_name)
-        sms = SmartulaSound(samples)
-        sms.get_fft()
-        print('End!')
-    elif username and password:
-        sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
-
-        # Create folder for CSVs
-        try:
-            os.mkdir("csv")
-        except FileExistsError:
-            print("Folder already exists.")
-
-        # Get actual samples
-        try:
-            sound_id = int(sound)
-            __get_sound_and_save_to_file(sma, sound_id)
-        except ValueError:
-            sound_ids = __parse_range_string(sound)
-            for sound_id in sound_ids:
-                __get_sound_and_save_to_file(sma, sound_id)
-    else:
-        # Analyze whole csv folder
-        print("Smartula analyze start!")
-        __prepare_mfcc_in_folder("csv/", "mfcc-electromagnetic-field")
-
-        print("Smartula analyze end!")
+    tools = "hover,pan,wheel_zoom,zoom_in,zoom_out,box_zoom,undo,redo,reset,tap,save,box_select," \
+            "poly_select,lasso_select, "
+    tooltips = [
+        ("timestamp", "@timestamp"),
+        ("class", "@elfield")
+    ]
+    p = figure(tools=tools, tooltips=tooltips)
+    p.scatter(x='x', y='y', fill_color='colors', fill_alpha=0.4, source=source, size=15, line_color=None)
+    output_file("color_scatter.html", title="color_scatter.py example")
+    show(p)  # open a browser
 
 
 def __prepare_mfcc_in_folder(folder_with_sounds, mfcc_folder_name):
@@ -147,10 +115,85 @@ def __affected(datetime_string, list_of_tuples_interval):
 def __change_directory_prepare_sound_with_mfcc(folder_name, list_of_tuples_interval):
     os.chdir(folder_name)
     all_filenames = [i for i in glob.glob("*.{}".format("csv"))]
-    list_of_audios = [SmartulaSound(np.ravel(pd.read_csv(f, header=None)), f,
-                                    __affected(f.replace(".csv", ""), list_of_tuples_interval))
+    list_of_audios = [SmartulaSound(f, __affected(f.replace(".csv", ""), list_of_tuples_interval),
+                                    np.ravel(pd.read_csv(f, header=None)))
                       for f in all_filenames]
     return list_of_audios
+
+
+def __read_mfcc_from_folder(folder_name):
+    data_folder = Path(folder_name)
+    files_to_open = data_folder / "*.csv"
+
+    all_filenames = [i for i in glob.glob(str(files_to_open))]
+    # all_filenames = all_filenames[:10]
+    list_of_ss_mfcc = [SmartulaSound(PurePath(f).name.split(" ")[1].replace(".csv", ""),
+                                     PurePath(f).name.split(" ")[0],
+                                     samples=None, mfcc=np.ravel(pd.read_csv(f, header=None)))
+                       for f in all_filenames]
+    return list_of_ss_mfcc
+
+
+def main(argv):
+    username = ''
+    password = ''
+    file_name = ''
+    sound = 0
+
+    try:
+        opts, args = getopt.getopt(argv, "hu:p:s:f:", ["username=", "password=", "sound=", "file="])
+    except getopt.GetoptError:
+        print('smartula_analyze.py [-u <username> -p <password> -s <sound_id>] [--f <path_to_file>]')
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt == '-h':
+            print('smartula_analyze.py -u <username> -p <password>')
+            sys.exit()
+        elif opt in ("-u", "--username"):
+            username = arg
+        elif opt in ("-s", "--sound"):
+            sound = arg
+        elif opt in ("-p", "--password"):
+            password = arg
+        elif opt in ("-f", "--file"):
+            file_name = arg
+
+    if username and password:
+        sma = SmartulaAsk(username, password, "http://cejrowskidev.com:8884/")
+
+        # Create folder for CSVs
+        try:
+            os.mkdir("csv")
+        except FileExistsError:
+            print("Folder already exists.")
+
+        # Get actual samples
+        try:
+            sound_id = int(sound)
+            __get_sound_and_save_to_file(sma, sound_id)
+        except ValueError:
+            sound_ids = __parse_range_string(sound)
+            for sound_id in sound_ids:
+                __get_sound_and_save_to_file(sma, sound_id)
+    else:
+        # Analyze whole csv folder
+        print("Smartula analyze start!")
+        # __prepare_mfcc_in_folder("csv/", "mfcc-electromagnetic-field")
+        list_of_smartula_mfcc = __read_mfcc_from_folder("csv/mfcc-electromagnetic-field/")
+
+        mfccs_embedded = TSNE(n_components=2, perplexity=5, learning_rate=500, n_iter=5000, verbose=1) \
+            .fit_transform([ss.mfcc_feature_vector for ss in list_of_smartula_mfcc])
+
+        df_subset = pd.DataFrame()
+        df_subset['x'] = mfccs_embedded[:, 0]
+        df_subset['y'] = mfccs_embedded[:, 1]
+        df_subset['elfield'] = [ss.electromagnetic_field_on for ss in list_of_smartula_mfcc]
+        df_subset['timestamp'] = [ss.timestamp for ss in list_of_smartula_mfcc]
+
+        print_with_bokeh(df_subset)
+
+        print("Smartula analyze end!")
 
 
 if __name__ == "__main__":

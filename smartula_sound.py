@@ -20,12 +20,14 @@ def calculate_mfcc(samples):
 
 class SmartulaSound:
 
-    def __init__(self, samples, timestamp, electromagnetic_field_on):
-        array = np.array(samples[0:1500]).astype(float)
-        self.samples = array - array.mean()
+    def __init__(self, timestamp, electromagnetic_field_on, samples=None, mfcc=None):
+        if samples is not None:
+            array = np.array(samples[0:1500]).astype(float)
+            self.samples = array - array.mean()
+
+        self.mfcc_feature_vector = calculate_mfcc(np.array(self.samples)) if mfcc is None else mfcc
         self.timestamp = timestamp
         self.electromagnetic_field_on = electromagnetic_field_on
-        self.mfcc_feature_vector = calculate_mfcc(np.array(self.samples))
 
     def get_fft(self):
         no_samples = len(self.samples)
