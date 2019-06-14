@@ -11,6 +11,7 @@ import seaborn as sns
 
 from pathlib import Path, PurePath
 
+from librosa import audio
 from smartula_ask import SmartulaAsk
 from smartula_sound import SmartulaSound
 from sklearn.manifold import TSNE
@@ -19,7 +20,6 @@ from bokeh.models import ColumnDataSource
 
 
 def print_with_bokeh(data_frame):
-
     data_frame['colors'] = ["#003399" if elfield == "True" else "#ff0000" for elfield in data_frame['elfield']]
     source = ColumnDataSource(data=data_frame)
 
@@ -35,24 +35,25 @@ def print_with_bokeh(data_frame):
     show(p)  # open a browser
 
 
-def __prepare_mfcc_in_folder(folder_with_sounds, mfcc_folder_name):
+def __prepare_features_in_folder(folder_with_sounds, feature_folder_name, feature_func):
     """
     Function for reading sounds from specific folder and extracting stationary mfcc values
     :type folder_with_sounds: str   Folder name where sound should be placed
-    :type mfcc_folder_name: str     Folder where mfccs will be saved
+    :type feature_folder_name: str     Folder where mfccs will be saved
     """
-    list_of_audios = __change_directory_prepare_sound_with_mfcc(folder_with_sounds,
-                                                                [("2019-06-04T18-22-00", "2019-06-04T20-30-00"),
-                                                                 ("2019-06-05T20-46-00", "2019-06-05T23-48-00"),
-                                                                 ("2019-06-06T22-23-00", "2019-06-07T05-52-00")])
+    list_of_audios = __change_directory_prepare_sound_with_feature(folder_with_sounds,
+                                                                   [("2019-06-04T18-22-00", "2019-06-04T20-30-00"),
+                                                                    ("2019-06-05T20-46-00", "2019-06-05T23-48-00"),
+                                                                    ("2019-06-06T22-23-00", "2019-06-07T05-52-00")],
+                                                                   feature_func)
     try:
-        os.mkdir(mfcc_folder_name)
+        os.mkdir(feature_folder_name)
     except FileExistsError:
-        print("Folder " + mfcc_folder_name + " already exists.")
+        print("Folder " + feature_folder_name + " already exists.")
     for smartula_audio in list_of_audios:
-        save_to_file(mfcc_folder_name + "/" +
+        save_to_file(feature_folder_name + "/" +
                      str(smartula_audio.electromagnetic_field_on) + " " + smartula_audio.timestamp,
-                     smartula_audio.mfcc_feature_vector)
+                     smartula_audio.features)
 
 
 def save_to_file(filename, samples):
@@ -112,12 +113,40 @@ def __affected(datetime_string, list_of_tuples_interval):
     return is_affected
 
 
-def __change_directory_prepare_sound_with_mfcc(folder_name, list_of_tuples_interval):
+def calculate_mfcc(samples):
+    """
+    Feature function for mfcc coeficcionts calcultation
+    :param samples:
+    :return:
+    """
+    from python_speech_features import mfcc
+    sampling_rate = 3000
+    mfcc_coefs = mfcc(signal=samples, samplerate=sampling_rate,
+                      winlen=0.5, winstep=1, nfft=sampling_rate // 2)  # Overlapping zeros
+    # Return vector
+    return np.ravel(mfcc_coefs)
+
+
+def calculate_lpc(samples):
+    lpc = audio.lpc(samples, 13)
+    return lpc[1:]
+
+
+def __change_directory_prepare_sound_with_feature(folder_name, list_of_tuples_interval, feature_func):
     os.chdir(folder_name)
     all_filenames = [i for i in glob.glob("*.{}".format("csv"))]
-    list_of_audios = [SmartulaSound(f, __affected(f.replace(".csv", ""), list_of_tuples_interval),
-                                    np.ravel(pd.read_csv(f, header=None)))
-                      for f in all_filenames]
+    # all_filenames = all_filenames[:10]
+
+    list_of_audios = []
+    for filename in all_filenames:
+        samples = np.ravel(pd.read_csv(filename, header=None))
+        array = np.array(samples[0:1500]).astype(float)
+        samples = array - array.mean()
+        ss = SmartulaSound(timestamp=filename, electromagnetic_field_on=__affected(filename.replace(".csv", ""),
+                                                                                   list_of_tuples_interval),
+                           samples=samples, features=feature_func(samples))
+        list_of_audios.append(ss)
+
     return list_of_audios
 
 
@@ -129,7 +158,7 @@ def __read_mfcc_from_folder(folder_name):
     # all_filenames = all_filenames[:10]
     list_of_ss_mfcc = [SmartulaSound(PurePath(f).name.split(" ")[1].replace(".csv", ""),
                                      PurePath(f).name.split(" ")[0],
-                                     samples=None, mfcc=np.ravel(pd.read_csv(f, header=None)))
+                                     samples=None, features=np.ravel(pd.read_csv(f, header=None)))
                        for f in all_filenames]
     return list_of_ss_mfcc
 
@@ -179,19 +208,20 @@ def main(argv):
     else:
         # Analyze whole csv folder
         print("Smartula analyze start!")
-        # __prepare_mfcc_in_folder("csv/", "mfcc-electromagnetic-field")
-        list_of_smartula_mfcc = __read_mfcc_from_folder("csv/mfcc-electromagnetic-field/")
+        #__prepare_features_in_folder("csv/", "mfcc-electromagnetic-field", calculate_mfcc)
+        __prepare_features_in_folder("csv/", "lpc-electromagnetic-field", calculate_lpc)
+        #list_of_smartula_mfcc = __read_mfcc_from_folder("csv/mfcc-electromagnetic-field/")
 
-        mfccs_embedded = TSNE(n_components=2, perplexity=5, learning_rate=500, n_iter=5000, verbose=1) \
-            .fit_transform([ss.mfcc_feature_vector for ss in list_of_smartula_mfcc])
-
-        df_subset = pd.DataFrame()
-        df_subset['x'] = mfccs_embedded[:, 0]
-        df_subset['y'] = mfccs_embedded[:, 1]
-        df_subset['elfield'] = [ss.electromagnetic_field_on for ss in list_of_smartula_mfcc]
-        df_subset['timestamp'] = [ss.timestamp for ss in list_of_smartula_mfcc]
-
-        print_with_bokeh(df_subset)
+        # mfccs_embedded = TSNE(n_components=2, perplexity=5, learning_rate=500, n_iter=5000, verbose=1) \
+        #     .fit_transform([ss.features for ss in list_of_smartula_mfcc])
+        #
+        # df_subset = pd.DataFrame()
+        # df_subset['x'] = mfccs_embedded[:, 0]
+        # df_subset['y'] = mfccs_embedded[:, 1]
+        # df_subset['elfield'] = [ss.electromagnetic_field_on for ss in list_of_smartula_mfcc]
+        # df_subset['timestamp'] = [ss.timestamp for ss in list_of_smartula_mfcc]
+        #
+        # print_with_bokeh(df_subset)
 
         print("Smartula analyze end!")
 

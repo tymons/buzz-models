@@ -2,7 +2,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from python_speech_features import mfcc
 from scipy.signal import windows
 from scipy.fftpack import fft
 from scipy.signal import spectrogram
@@ -10,22 +9,11 @@ from scipy.signal import spectrogram
 import numpy as np
 
 
-def calculate_mfcc(samples):
-    sampling_rate = 3000
-    mfcc_coefs = mfcc(signal=samples, samplerate=sampling_rate,
-                      winlen=0.5, winstep=1, nfft=sampling_rate//2)   # Overlapping zeros
-    # Return vector
-    return np.ravel(mfcc_coefs)
-
-
 class SmartulaSound:
 
-    def __init__(self, timestamp, electromagnetic_field_on, samples=None, mfcc=None):
-        if samples is not None:
-            array = np.array(samples[0:1500]).astype(float)
-            self.samples = array - array.mean()
-
-        self.mfcc_feature_vector = calculate_mfcc(np.array(self.samples)) if mfcc is None else mfcc
+    def __init__(self, timestamp, electromagnetic_field_on, samples=None, features=None):
+        self.samples = samples
+        self.features = features
         self.timestamp = timestamp
         self.electromagnetic_field_on = electromagnetic_field_on
 
