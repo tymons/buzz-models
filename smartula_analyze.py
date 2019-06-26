@@ -95,8 +95,7 @@ def __parse_range_string(sound_ids):
 
 def __get_sound_and_save_to_file(sma, sound_id):
     samples, timestamp = sma.get_sound(1300001, sound_id)
-    if os.name == 'nt':
-        timestamp = timestamp.replace(":", "-")
+    timestamp = timestamp.replace(":", "-")
 
     save_to_file("csv/" + str(timestamp) + ".csv", samples)
     print('Success at sound (' + str(sound_id) + ') download!')
@@ -208,8 +207,8 @@ def main(argv):
     else:
         # Analyze whole csv folder
         print("Smartula analyze start!")
-        #__prepare_features_in_folder("csv/", "mfcc-electromagnetic-field", calculate_mfcc)
-        __prepare_features_in_folder("csv/", "lpc-electromagnetic-field", calculate_lpc)
+        __prepare_features_in_folder("csv/", "mfcc-electromagnetic-field", calculate_mfcc)
+        #__prepare_features_in_folder("csv/", "lpc-electromagnetic-field", calculate_lpc)
         #list_of_smartula_mfcc = __read_mfcc_from_folder("csv/mfcc-electromagnetic-field/")
 
         # mfccs_embedded = TSNE(n_components=2, perplexity=5, learning_rate=500, n_iter=5000, verbose=1) \
