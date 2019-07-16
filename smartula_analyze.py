@@ -19,6 +19,16 @@ from bokeh.plotting import figure, show, output_file
 from bokeh.models import ColumnDataSource
 
 
+def is_affected(datetime_string, list_of_tuples_interval):
+    is_affected = False
+    date_time_obj = datetime.datetime.strptime(datetime_string, "%Y-%m-%dT%H-%M-%S")
+    for interval in list_of_tuples_interval:
+        from_datetime_obj = datetime.datetime.strptime(interval[0], "%Y-%m-%dT%H-%M-%S")
+        to_datetime_obj = datetime.datetime.strptime(interval[1], "%Y-%m-%dT%H-%M-%S")
+        is_affected |= (from_datetime_obj < date_time_obj < to_datetime_obj)
+
+    return is_affected
+
 def print_with_bokeh(data_frame):
     data_frame['colors'] = ["#003399" if elfield == "True" else "#ff0000" for elfield in data_frame['elfield']]
     source = ColumnDataSource(data=data_frame)
@@ -35,7 +45,7 @@ def print_with_bokeh(data_frame):
     show(p)  # open a browser
 
 
-def __prepare_features_in_folder(folder_with_sounds, feature_folder_name, feature_func):
+def prepare_features_in_folder(folder_with_sounds, feature_folder_name, feature_func):
     """
     Function for reading sounds from specific folder and extracting stationary mfcc values
     :type folder_with_sounds: str   Folder name where sound should be placed
@@ -100,18 +110,6 @@ def __get_sound_and_save_to_file(sma, sound_id):
     save_to_file("csv/" + str(timestamp) + ".csv", samples)
     print('Success at sound (' + str(sound_id) + ') download!')
 
-
-def __affected(datetime_string, list_of_tuples_interval):
-    is_affected = False
-    date_time_obj = datetime.datetime.strptime(datetime_string, "%Y-%m-%dT%H-%M-%S")
-    for interval in list_of_tuples_interval:
-        from_datetime_obj = datetime.datetime.strptime(interval[0], "%Y-%m-%dT%H-%M-%S")
-        to_datetime_obj = datetime.datetime.strptime(interval[1], "%Y-%m-%dT%H-%M-%S")
-        is_affected |= (from_datetime_obj < date_time_obj < to_datetime_obj)
-
-    return is_affected
-
-
 def calculate_mfcc(samples):
     """
     Feature function for mfcc coeficcionts calcultation
@@ -141,7 +139,7 @@ def __change_directory_prepare_sound_with_feature(folder_name, list_of_tuples_in
         samples = np.ravel(pd.read_csv(filename, header=None))
         array = np.array(samples[0:1500]).astype(float)
         samples = array - array.mean()
-        ss = SmartulaSound(timestamp=filename, electromagnetic_field_on=__affected(filename.replace(".csv", ""),
+        ss = SmartulaSound(timestamp=filename, electromagnetic_field_on=is_affected(filename.replace(".csv", ""),
                                                                                    list_of_tuples_interval),
                            samples=samples, features=feature_func(samples))
         list_of_audios.append(ss)
@@ -207,9 +205,35 @@ def main(argv):
     else:
         # Analyze whole csv folder
         print("Smartula analyze start!")
-        __prepare_features_in_folder("csv/", "mfcc-electromagnetic-field", calculate_mfcc)
+        #__prepare_features_in_folder("csv/", "mfcc-electromagnetic-field", calculate_mfcc)
         #__prepare_features_in_folder("csv/", "lpc-electromagnetic-field", calculate_lpc)
         #list_of_smartula_mfcc = __read_mfcc_from_folder("csv/mfcc-electromagnetic-field/")
+
+        k = 0.8
+
+        import os
+        import glob
+
+        os.chdir("csv")
+
+        all_filenames = [i for i in glob.glob("*.{}".format("csv"))]
+        # all_filenames = all_filenames[:500]
+        list_of_audios = []
+        for filename in all_filenames:
+            samples = np.ravel(pd.read_csv(filename, header=None))
+            array = np.array(samples[0:1500]).astype(float)
+            samples = array - array.mean()
+            audio_tuple = (filename, samples)
+            list_of_audios.append(audio_tuple)
+
+        data = np.array([audio[1] for audio in list_of_audios])
+        print(data.shape)
+
+        index = int(k * len(data))
+        x_train = data[:index]
+        x_test = data[index:]
+        print(x_train.shape)
+        print(x_test.shape)
 
         # mfccs_embedded = TSNE(n_components=2, perplexity=5, learning_rate=500, n_iter=5000, verbose=1) \
         #     .fit_transform([ss.features for ss in list_of_smartula_mfcc])
