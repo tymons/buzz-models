@@ -13,19 +13,24 @@ class BasicAutoencoder(nn.Module):
             nn.Linear(in_features=256, out_features=128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(True),
+            nn.Dropout2d(p=0.2),
             nn.Linear(in_features=128, out_features=64),
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(True),
+            nn.Dropout2d(p=0.2),
             nn.Linear(in_features=64, out_features=32),
             nn.BatchNorm1d(num_features=32),
-            nn.ReLU(True))
+            nn.ReLU(True),
+            nn.Dropout2d(p=0.2))
         self.decoder = nn.Sequential(
             nn.Linear(in_features=32, out_features=64),
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(True),
+            nn.Dropout2d(p=0.2),
             nn.Linear(in_features=64, out_features=128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(True),
+            nn.Dropout2d(p=0.2),
             nn.Linear(in_features=128, out_features=256),
             nn.BatchNorm1d(num_features=256),
             nn.Sigmoid())
@@ -294,3 +299,8 @@ def basic_ae_encode(model, data_input):
             encoded_data.extend(output)
 
     return encoded_data
+
+
+# Contrastive autoencoder
+
+

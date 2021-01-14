@@ -46,7 +46,7 @@ def merge_dataframes_ontimestamp(df_merge_to, *args):
     return df_hive_data_ua
 
 
-def prepare_dataset1d(data_df, train_ratio):
+def prepare_dataset1d(data_df, train_ratio, batch_size):
     """ Function for preparing dataset for autoencoder
 
         attributes: data_df - pandas dataframe column
@@ -66,7 +66,10 @@ def prepare_dataset1d(data_df, train_ratio):
     dataset = tdata.TensorDataset(dataset_tensor)
     train_set, val_set = tdata.random_split(dataset, [train_data_size, val_data_size])
 
-    return train_set, val_set
+    train_dataloader = tdata.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = tdata.DataLoader(val_set, batch_size=batch_size, shuffle=True)
+    
+    return train_dataloader, val_dataloader
 
 
 def prepare_dataset2d(data_df, train_ratio):
