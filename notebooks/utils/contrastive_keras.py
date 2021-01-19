@@ -1,7 +1,21 @@
 import tensorflow as tf
+import numpy as np
 
 from tensorflow.keras.layers import Dense, Lambda
 from tensorflow.keras import backend as K
+
+def cvae_encode(s_encoder, periodogram):
+    data_2_encode = np.stack(periodogram.to_numpy()).squeeze()
+    s_mean, s_log_var, s = s_encoder.predict(data_2_encode)
+    return s
+
+def sampling(args):
+    z_mean, z_log_var = args
+    batch = tf.keras.backend.shape(z_mean)[0]
+    dim = tf.keras.backend.int_shape(z_mean)[1]
+    # by default, random_normal has mean=0 and std=1.0
+    epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
+    return z_mean + tf.keras.backend.exp(0.5 * z_log_var) * epsilon
 
 def contrastive_keras_vae(input_dim=4, intermediate_dim=12, latent_dim=2, beta=1, disentangle=False, gamma=0):
     input_shape = (input_dim, )

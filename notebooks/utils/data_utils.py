@@ -121,12 +121,12 @@ def plot_spectrogram(frequency, time_x, spectrocgram, title):
     plt.show()
 
 
-def plot_hour_shift(*args, labels_list, xticklabels):
+def plot_hour_shift(*args, labels_list, xticklabels, save_path=None):
     """ Function for plotting n-hour shift """
-    fig, axs = plt.subplots(len(args[0]) // 2, 2, figsize=(10, 8))
+    fig, axs = plt.subplots(len(args[0]) // 2, 2, figsize=(10, 8), facecolor='white')
     fig.subplots_adjust(hspace=0.7)
 
-    colors = ['ro', 'bx', 'go', 'yx', 'ko']
+    colors = ['kx', 'bo', 'go', 'yx', 'ko', 'ro', 'rx']
 
     if len(args) > len(colors):
         print('warning your accuracies are bigger than colors for plot!')
@@ -146,7 +146,9 @@ def plot_hour_shift(*args, labels_list, xticklabels):
 
     fig.show()
 
-
+    if save_path:
+        fig.savefig(save_path, facecolor=fig.get_facecolor(), edgecolor='none')
+        
 def search_best_night_day(input_data, feature_name, days_as_test, start_hours, max_shift, verbose=0):
     """ Function performing One-class SVM
 
