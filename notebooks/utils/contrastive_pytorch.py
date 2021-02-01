@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
 from torch import nn
+from tqdm import tqdm
 
 class VAE(nn.Module):
     """ Class for variational autoencoder """
@@ -157,38 +158,44 @@ def train_vae_model(model, learning_rate, weight_decay, num_epochs, patience,
         ###################
         # train the model #
         ###################
+        print(f'-> training at epoch {epoch}', flush=True)
         model.train()
-        for input_data in dataloader_train:
-            # transfer data to device
-            batch_size = input_data.shape[0]
-            input_data = input_data.to(device)
-            # clear the gradients of all optimized variables
-            optimizer.zero_grad()
-            # forward pass
-            outputs, mu, log_var = model(input_data)
-            # calculate the BCE loss with KL
-            loss = vae_loss(outputs, input_data, mu, log_var)
-            # backward pass: compute gradient of the loss with respect to model parameters
-            loss.backward()
-            # perform a single optimization step (parameter update)
-            optimizer.step()
-            # update running training loss
-            train_loss.append(loss.item())
+        with tqdm(total=len(dataloader_train)) as pbar:
+            for input_data, labels in tqdm(dataloader_train, position=0, leave=True):
+                # transfer data to device
+                batch_size = input_data.shape[0]
+                input_data = input_data.to(device)
+                # clear the gradients of all optimized variables
+                optimizer.zero_grad()
+                # forward pass
+                outputs, mu, log_var = model(input_data)
+                # calculate the BCE loss with KL
+                loss = vae_loss(outputs, input_data, mu, log_var)
+                # backward pass: compute gradient of the loss with respect to model parameters
+                loss.backward()
+                # perform a single optimization step (parameter update)
+                optimizer.step()
+                # update running training loss
+                train_loss.append(loss.item())
+                pbar.update(1)
 
         ###################
         # val the model   #
         ###################
+        print(f'-> validating at epoch {epoch}', flush=True)
         model.eval()
-        for input_data_val in dataloader_val:
-            # transfer data to device
-            batch_size_val = input_data_val.shape[0]
-            input_data_val = input_data_val.to(device)
-            # forward pass
-            val_outputs, val_mu, val_log_var  = model(input_data_val)
-            # calculate the BCE loss with KL
-            vloss = vae_loss(val_outputs, input_data_val, val_mu, val_log_var)
-            # update running val loss
-            val_loss.append(vloss.item())
+        with tqdm(total=len(dataloader_val)) as pbar:
+            for input_data_val, labels in tqdm(dataloader_val, position=0, leave=True):
+                # transfer data to device
+                batch_size_val = input_data_val.shape[0]
+                input_data_val = input_data_val.to(device)
+                # forward pass
+                val_outputs, val_mu, val_log_var  = model(input_data_val)
+                # calculate the BCE loss with KL
+                vloss = vae_loss(val_outputs, input_data_val, val_mu, val_log_var)
+                # update running val loss
+                val_loss.append(vloss.item())
+                pbar.update(1)
 
         # print training/validation statistics
         # calculate average loss over an epoch
@@ -222,7 +229,7 @@ def train_vae_model(model, learning_rate, weight_decay, num_epochs, patience,
         # clear batch losses
         train_loss = []
         val_loss = []
-    
+        
     fig = plt.figure(figsize=(10, 5))
     plt.plot(np.arange(1, epoch + 1), avg_train_loss, 'r', label="train loss")
     plt.plot(np.arange(1, epoch + 1), avg_val_loss, 'b', label="validation loss")
