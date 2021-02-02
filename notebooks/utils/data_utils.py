@@ -1,5 +1,6 @@
 import torch
 import collections
+import math
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -210,3 +211,7 @@ def search_best_night_day(input_data, feature_name, days_as_test, start_hours, m
         accs_per_shift = []
 
     return final_accs
+
+def normal_pdf(x, mu=0, sigma=1):
+    sqrt_two_pi = math.sqrt(math.pi * 2)
+    return math.exp(-(x - mu) ** 2 / 2 / sigma ** 2) / (sqrt_two_pi * sigma)

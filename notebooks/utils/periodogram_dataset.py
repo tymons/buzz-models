@@ -21,28 +21,17 @@ class PeriodogramDataset(Dataset):
         sample_rate, sound_samples = wavfile.read(filename)
         hive_name = filename.split(os.sep)[-2].split("_")[0]
         label = next(index for index, name in enumerate(self.labels) if name == hive_name)
-
-        sound_samples = sound_samples.T[0]/(2.0**31)
-        rms = sqrt(sum(sound_samples**2)/len(sound_samples))
-        if rms < 0.8:
-            periodogram = fft(sound_samples, n=sample_rate)
-            periodogram = abs(periodogram[1:int(len(periodogram)/2)])
-            if self.slice_freq:
-                periodogram = periodogram[self.slice_freq[0]:self.slice_freq[1]]
-                scaled_perio = MinMaxScaler().fit_transform(periodogram.reshape(-1, 1)).T
-                scaled_perio = scaled_perio.astype(np.float32)
-                return (scaled_perio, label)
-        else:
-            return None
+        if len(sound_samples.shape) > 1:
+            # 2-channel recording
+            sound_samples = sound_samples.T[0]
+        sound_samples = sound_samples/(2.0**31)
+        periodogram = fft(sound_samples, n=sample_rate)
+        periodogram = abs(periodogram[1:int(len(periodogram)/2)])
+        if self.slice_freq:
+            periodogram = periodogram[self.slice_freq[0]:self.slice_freq[1]]
+        scaled_perio = MinMaxScaler().fit_transform(periodogram.reshape(-1, 1)).T
+        scaled_perio = scaled_perio.astype(np.float32)
+        return (scaled_perio, label)
         
     def __len__(self):
         return len(self.files)
-    
-def reject_nones(batch):
-    len_batch = len(batch)
-    batch = list(filter(lambda x:x is not None, batch))
-    if len_batch > len(batch):
-        diff = len_batch - len(batch)
-        batch = batch + batch[:diff]
-
-    return torch.utils.data.dataloader.default_collate(batch)
