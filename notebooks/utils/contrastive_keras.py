@@ -17,9 +17,8 @@ def sampling(args):
     epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
     return z_mean + tf.keras.backend.exp(0.5 * z_log_var) * epsilon
 
-def contrastive_keras_vae(input_dim=4, intermediate_dim=12, latent_dim=2, beta=1, disentangle=False, gamma=0):
+def contrastive_keras_vae(input_dim=4, intermediate_dim=12, latent_dim=2, beta=1, disentangle=False, gamma=0, batch_size=100):
     input_shape = (input_dim, )
-    batch_size = 100
     tg_inputs = tf.keras.layers.Input(shape=input_shape, name='tg_input')
     bg_inputs = tf.keras.layers.Input(shape=input_shape, name='bg_input')
     
