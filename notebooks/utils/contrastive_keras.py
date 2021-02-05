@@ -63,6 +63,7 @@ def contrastive_keras_vae(input_dim=4, intermediate_dim=12, latent_dim=2, beta=1
 
     z_encoder = tf.keras.models.Model(tg_inputs, [tg_z_mean, tg_z_log_var, tg_z], name='z_encoder')
     s_encoder = tf.keras.models.Model(tg_inputs, [tg_s_mean, tg_s_log_var, tg_s], name='s_encoder')
+    sb_encoder = tf.keras.models.Model(bg_inputs, [bg_s_mean, bg_s_log_var, bg_s], name='sb_encoder')
 
     # build decoder model
     cvae_latent_inputs = tf.keras.layers.Input(shape=(2 * latent_dim,), name='sampled')
@@ -131,4 +132,4 @@ def contrastive_keras_vae(input_dim=4, intermediate_dim=12, latent_dim=2, beta=1
     cvae.add_loss(cvae_loss)
     cvae.compile(optimizer='adam')
     
-    return cvae, cvae_fg, z_encoder, s_encoder, cvae_decoder
+    return cvae, cvae_fg, z_encoder, s_encoder, sb_encoder, cvae_decoder

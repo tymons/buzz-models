@@ -6,6 +6,24 @@ from scipy.fftpack import fft, fftfreq
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
+def read_sound_file(filename, slice_freq):
+    """ Read and scales sound file """
+    sample_rate, sound_samples = wavfile.read(filename)
+    if len(sound_samples.shape) > 1:
+            sound_samples = sound_samples.T[0]
+
+    sound_samples = sound_samples/(2.0**31)
+    periodogram = fft(sound_samples, n=sample_rate)
+    periodogram = abs(periodogram[1:int(len(periodogram)/2)])
+
+    if slice_freq:
+        periodogram = periodogram[slice_freq[0]:slice_freq[1]]
+
+    scaled_perio = MinMaxScaler().fit_transform(periodogram.reshape(-1, 1)).T
+    scaled_perio = scaled_perio.squeeze()
+
+    return scaled_perio
+    
 class PeriodogramGenerator(keras.utils.Sequence):
     def __init__(self, target_filenames, background_filenames,
                  labels, dim=(2048,), batch_size=32, slice_freq=None, shuffle=True):
@@ -57,29 +75,11 @@ class PeriodogramGenerator(keras.utils.Sequence):
             hive_name = filename.split(os.sep)[-2].split("_")[0]
             label = next(index for index, name in enumerate(self.labels) if name == hive_name)
                 
-            T[i, ] = self.__read_sound_file(filename)
+            T[i, ] = read_sound_file(filename, self.slice_freq)
             y[i] = label
             
         # Generate background data
         for i, filename in enumerate(background_filenames_temp):
-            B[i, ] = self.__read_sound_file(filename)
+            B[i, ] = read_sound_file(filename, self.slice_freq)
 
         return T, B, y
-    
-    def __read_sound_file(self, filename):
-        """ Read and scales sound file """
-        sample_rate, sound_samples = wavfile.read(filename)
-        if len(sound_samples.shape) > 1:
-                sound_samples = sound_samples.T[0]
-
-        sound_samples = sound_samples/(2.0**31)
-        periodogram = fft(sound_samples, n=sample_rate)
-        periodogram = abs(periodogram[1:int(len(periodogram)/2)])
-
-        if self.slice_freq:
-            periodogram = periodogram[self.slice_freq[0]:self.slice_freq[1]]
-
-        scaled_perio = MinMaxScaler().fit_transform(periodogram.reshape(-1, 1)).T
-        scaled_perio = scaled_perio.squeeze()
-        
-        return scaled_perio
