@@ -43,8 +43,6 @@ class PeriodogramGenerator(keras.utils.Sequence):
         background_filenames_temp = [self.background_filenames[k] for k in background_indexes]
         
         target, background, _ = self.__data_generation(target_filenames_temp, background_filenames_temp)
-        print(target.shape)
-        print(background.shape)
         return [target, background]
     
     def __data_generation(self, target_filenames_temp, background_filenames_temp):
