@@ -1,3 +1,10 @@
+import glob
+import os
+import math
+
+from scipy.io import wavfile
+from tqdm import tqdm
+
 import torch
 import collections
 import math
@@ -215,3 +222,54 @@ def search_best_night_day(input_data, feature_name, days_as_test, start_hours, m
 def normal_pdf(x, mu=0, sigma=1):
     sqrt_two_pi = math.sqrt(math.pi * 2)
     return math.exp(-(x - mu) ** 2 / 2 / sigma ** 2) / (sqrt_two_pi * sigma)
+
+def create_valid_sounds_datalist(root_folder, validfile_filename, prefix=""):
+    """Scans specified folder for files with prefix 
+    
+    Parameters:
+        valid_filename (str): file which will be created
+        root_folder (str): root folder where scan will be performed
+        prefix (str): optional prefix for folderrs
+
+    Returns:
+        folder_list (list): list of folders which were scanned
+    """
+    folders = [folder for folder in glob.glob(f"{root_folder}\\{prefix}*\\")]
+    for folder in folders:
+        print(f"\r\n checking folder {folder.split(os.sep)[-2]}", flush=True)
+        files = [file for file in glob.glob(f"{folder}*.wav")]
+        valid_files = []
+        for filename in tqdm(files):
+            # check filename and write its filename to list if is valid
+            sample_rate, sound_samples = wavfile.read(filename)
+            if len(sound_samples.shape) > 1:
+                sound_samples = sound_samples.T[0]
+            sound_samples = sound_samples/(2.0**31)
+            rms = math.sqrt(sum(sound_samples**2)/len(sound_samples))
+            if rms < 0.8:
+                valid_files.append(filename)
+        
+        with open(f'{folder}{validfile_filename}', 'w') as f:
+            f.write("\n".join(valid_files))
+
+    return folders
+
+def get_valid_sounds_datalist(folder_list, validfile_filename):
+    """Reads valid sounds files in specific directories. Note that files should exists, 
+    see create_valid_sounds_datalis method
+    
+    Parameters:
+        folder_list (str): list with folder which will be scanned
+        validfile_filename (str): filename which will be read from folder_list
+    
+    Returns:
+
+    """
+    sound_filenames = []
+    summary_files = [f for folder in folder_list for f in 
+                        glob.glob(os.path.join(folder, validfile_filename))]
+    for summary_file in summary_files:
+        with open(summary_file, 'r') as f:
+            sound_filenames += f.read().splitlines()
+
+    print(f'got {len(sound_filenames)} sound filenames read for {len(summary_files)} files')
