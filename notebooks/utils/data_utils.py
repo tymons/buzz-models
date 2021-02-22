@@ -274,3 +274,15 @@ def get_valid_sounds_datalist(folder_list, validfile_filename):
 
     print(f'got {len(sound_filenames)} sound filenames read for {len(summary_files)} files/folders')
     return sound_filenames
+
+def filter_strlist(input_str_list, *names):
+    """ Filter sound_filenames as it returns only these files which includes hive_names
+
+    Parameters:
+        input_str_list (list): list of strings to be filtered
+        names (varg): names to be search for inside input_str_list
+
+    Returns:
+        filtered_list (list): filtered list
+    """
+    return list(filter(lambda str_elem: (any(x in str_elem for x in [*names])), input_str_list))
