@@ -6,6 +6,21 @@ import matplotlib.pyplot as plt
 from torch import nn
 from tqdm import tqdm
 
+def _reparameterize(self, mu, log_var):
+    """ Function for reparametrization trick """
+    std = torch.exp(0.5 * log_var)
+    eps = torch.randn_like(std)
+
+    return mu + eps * std
+
+class ConvolutionalVAE(nn.Module):
+    """ Class for convolutional variational autoencoder """
+    super(ConvolutionalVAE, self).__init__()
+
+    def forward(self, x):
+        means, log_var = self.encoder(x)
+
+
 class VAE(nn.Module):
     """ Class for variational autoencoder """
     def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes):
@@ -22,17 +37,10 @@ class VAE(nn.Module):
 
     def forward(self, x):
         means, log_var = self.encoder(x)
-        z = self.reparameterize(means, log_var)
+        z = _reparameterize(means, log_var)
         recon_x = self.decoder(z)
 
         return recon_x, means, log_var
-
-    def reparameterize(self, mu, log_var):
-
-        std = torch.exp(0.5 * log_var)
-        eps = torch.randn_like(std)
-
-        return mu + eps * std
 
     def inference(self, z):
         return self.decoder(z)
@@ -92,7 +100,7 @@ def vae_encode(model, data):
         data = torch.Tensor(data)
         data = data[:, None, :]
         mu, log_var = model.encoder(data.to(device))
-        output = model.reparameterize(mu, log_var).cpu().numpy()
+        output = _reparameterize(mu, log_var).cpu().numpy()
         output = np.reshape(output, [-1, model.latent_size])
         return output
     

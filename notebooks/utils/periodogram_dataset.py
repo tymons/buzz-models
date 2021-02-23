@@ -25,6 +25,8 @@ class PeriodogramDataset(Dataset):
             # 2-channel recording
             sound_samples = sound_samples.T[0]
         sound_samples = sound_samples/(2.0**31)
+
+        # calculate periodogram
         periodogram = fft(sound_samples, n=sample_rate)
         periodogram = abs(periodogram[1:int(len(periodogram)/2)])
         if self.slice_freq:
