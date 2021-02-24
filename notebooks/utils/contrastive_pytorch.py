@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import math
 
 from torch import nn
 from tqdm import tqdm
@@ -82,8 +83,8 @@ class ConvolutionalDecoder(nn.Module):
             self.mlp.add_module(name=f"d-relu{i}", module=nn.ReLU())
     
         temp_tensor = torch.empty(linear_sizes[-1])
-        divider = linear_sizes[-1]//conv_features_sizes[0]
-        desired_shape = torch.reshape(temp_tensor, (linear_sizes[-1]//divider, linear_sizes[-1]//divider, -1)).shape
+        target_size = int(math.sqrt(linear_sizes[-1]//conv_features_sizes[0]))
+        desired_shape = torch.reshape(temp_tensor, (conv_features_sizes[0], target_size, target_size)).shape
         self.view = View([-1, *desired_shape])
 
         for i, (in_size, out_size) in enumerate(zip(conv_features_sizes[:-1], conv_features_sizes[1:])):
@@ -282,7 +283,6 @@ def train_vae_model(model, learning_rate, weight_decay, num_epochs, patience,
         with tqdm(total=len(dataloader_train)) as pbar:
             for input_data, labels in tqdm(dataloader_train, position=0, leave=True):
                 # transfer data to device
-                batch_size = input_data.shape[0]
                 input_data = input_data.to(device)
                 # clear the gradients of all optimized variables
                 optimizer.zero_grad()
@@ -306,7 +306,6 @@ def train_vae_model(model, learning_rate, weight_decay, num_epochs, patience,
         with tqdm(total=len(dataloader_val)) as pbar:
             for input_data_val, labels in tqdm(dataloader_val, position=0, leave=True):
                 # transfer data to device
-                batch_size_val = input_data_val.shape[0]
                 input_data_val = input_data_val.to(device)
                 # forward pass
                 val_outputs, val_mu, val_log_var  = model(input_data_val)

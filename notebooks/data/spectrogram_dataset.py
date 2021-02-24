@@ -26,7 +26,7 @@ class SpectrogramDataset(Dataset):
         self.hop_len = hop_len
         self.fmax = fmax
 
-    def __getitem__(self, idx):
+    def __readitem(self, idx):
         """ Function for getting item from Spectrogram dataset
 
         Parameters:
@@ -35,7 +35,6 @@ class SpectrogramDataset(Dataset):
         Returns:
             ((spectrogram, frequencies, times), label) (tuple)
         """
-
         filename = self.files[idx]
         sample_rate, sound_samples = wavfile.read(filename)
         hive_name = filename.split(os.sep)[-2].split("_")[0]
@@ -61,6 +60,24 @@ class SpectrogramDataset(Dataset):
         scaled_spectrogram_db = MinMaxScaler().fit_transform(spectrogram_db.reshape(-1, 1)).reshape(initial_shape)
         scaled_spectrogram_db = scaled_spectrogram_db.astype(np.float32)
         return ((scaled_spectrogram_db, frequencies, times), label)
-        
+
+    def __getitem__(self, idx):
+        """ Wrapper for getting item from Spectrogram dataset """
+        (data, _, _), label = self.__readitem(idx)
+        return data, label
+ 
     def __len__(self):
         return len(self.files)
+
+    def sample(self, idx=None):
+        """ Function for sampling dataset 
+        
+        Parameters:
+            idx (int): sample idx
+        Returns:
+            (spectrogram_db, freqs, time)
+        """
+        if not idx:
+            idx = random.uniform(0, len(self.files))
+        return self.__readitem(idx)
+        
