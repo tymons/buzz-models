@@ -9,24 +9,19 @@ from torch.utils.data import Dataset
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
-class MfccDataset(Dataset):
+from data.sound import Sound
+
+class MfccDataset(Dataset, Sound):
     """ MFCC dataset - here we treat sound as stationary signal """
     def __init__(self, filenames, hives, mels, nfft, hop_len):
-        self.files = filenames
-        self.labels = hives
+        Sound.__init__(self, filenames, hives)
         self.n_mels = mels
         self.nfft = nfft
         self.hop_len = hop_len
 
     def __getitem__(self, idx):
-        filename = self.files[idx]
-        sampling_rate, sound_samples = wavfile.read(filename)
-        hive_name = filename.split(os.sep)[-2].split("_")[0]
-        label = next(index for index, name in enumerate(self.labels) if name == hive_name)
-        if len(sound_samples.shape) > 1:
-            # 2-channel recording
-            sound_samples = sound_samples.T[0]
-        sound_samples = sound_samples/(2.0**31)
+        # read sound samples and label
+        sound_samples, sampling_rate, label = Sound.read_sound(self, idx)
 
         # calculate mfcc values
         mfccs = librosa.feature.mfcc(y=sound_samples, sr=sampling_rate, n_fft=self.nfft, hop_length=self.hop_len, n_mfcc=self.n_mels)

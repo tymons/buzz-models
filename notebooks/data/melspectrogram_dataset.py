@@ -8,7 +8,9 @@ from torch.utils.data import Dataset
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
-class MelSpectrogramDataset(Dataset):
+from data.sound import Sound
+
+class MelSpectrogramDataset(Dataset, Sound):
     """ MelSpectrogram dataset """
     def __init__(self, filenames, hives, nfft, hop_len, mels):
         """ Constructor for MelSepctrogram Dataset
@@ -21,22 +23,14 @@ class MelSpectrogramDataset(Dataset):
             mels (int): mels
             fmax (int): constraint on maximum frequency
         """
-        self.files = filenames
-        self.labels = hives
+        Sound.__init__(self, filenames, hives)
         self.nfft = nfft
         self.hop_len = hop_len
         self.mels = mels
 
     def __getitem__(self, idx):
-        """ Wrapper for getting item from Spectrogram dataset """
-        filename = self.files[idx]
-        sampling_rate, sound_samples = wavfile.read(filename)
-        hive_name = filename.split(os.sep)[-2].split("_")[0]
-        label = next(index for index, name in enumerate(self.labels) if name == hive_name) if self.labels else 0
-        if len(sound_samples.shape) > 1:
-            # 2-channel recording
-            sound_samples = sound_samples.T[0]
-        sound_samples = sound_samples/(2.0**31)
+        # read sound samples from file
+        sound_samples, sampling_rate, label = Sound.read_sound(self, idx)
 
         mel = librosa.feature.melspectrogram(y=sound_samples, sr=sampling_rate, \
                                              n_fft=self.nfft, hop_length=self.hop_len, n_mels=self.mels)
