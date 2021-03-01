@@ -25,7 +25,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def compute_spectrogram(file, windowLength=512, windowHop= 256, scale_audio=True, square=True, windowType='hanning', centered=False, normalized = False ):
+def compute_spectrogram(sig, sampling_rate, windowLength=512, windowHop= 256, square=True, windowType='hanning', centered=False, normalized = False ):
     """
     Compute a spectrogram of an audio signal.
     Return a list of list of values as the spectrogram, and a list of frequencies.
@@ -33,19 +33,14 @@ def compute_spectrogram(file, windowLength=512, windowHop= 256, scale_audio=True
     file -- the real part (default 0.0)
     Parameters:
     file: an instance of the AudioFile class.
+    sampling_rate:
     windowLength: length of the fft window (in samples)
     windowHop: hop size of the fft window (in samples)
-    scale_audio: if set as True, the signal samples are scale between -1 and 1 (as the audio convention). If false the signal samples remains Integers (as output from scipy.io.wavfile)
     square: if set as True, the spectrogram is computed as the square of the magnitude of the fft. If not, it is the magnitude of the fft.
     hamming: if set as True, the spectrogram use a correlation with a hamming window.
     centered: if set as true, each resulting fft is centered on the corresponding sliding window
     normalized: if set as true, divide all values by the maximum value
     """
-
-    if scale_audio:
-        sig = file.sig_float # use signal with float between -1 and 1
-    else:
-        sig = file.sig_int # use signal with integers
 
     W = signal.get_window(windowType, windowLength, fftbins=False)
     halfWindowLength = int(windowLength/2)
@@ -68,7 +63,7 @@ def compute_spectrogram(file, windowLength=512, windowHop= 256, scale_audio=True
     if normalized:
         spectro = spectro/np.max(spectro) # set the maximum value to 1 y
 
-    frequencies = [e * file.niquist / float(windowLength / 2) for e in range(halfWindowLength)] # vector of frequency<-bin in the spectrogram
+    frequencies = [e * (sampling_rate//2) / float(windowLength / 2) for e in range(halfWindowLength)] # vector of frequency<-bin in the spectrogram
     return spectro, frequencies
 
 
@@ -90,8 +85,11 @@ def compute_ACI(spectro, j_bin):
 
     times = range(0, spectro.shape[1], j_bin) # relevant time indices
     # times = range(0, spectro.shape[1]-10, j_bin) # alternative time indices to follow the R code
+    
     jspecs = [np.array(spectro[:,i:i+j_bin]) for i in times]  # sub-spectros of temporal size j
+
     aci = [sum((np.sum(abs(np.diff(jspec)), axis=1) / np.sum(jspec, axis=1))) for jspec in jspecs] 	# list of ACI values on each jspecs
+    
     main_value = sum(aci)
     temporal_values = aci
 
@@ -225,7 +223,7 @@ def gini(values):
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def compute_AEI(spectro, freq_band_Hz, max_freq=10000, db_threshold=-50, freq_step=1000):
+def compute_AEI(pcm_spectro, dbfs_max, freq_band_Hz, max_freq=10000, dbfs_threshold=-50, freq_step=1000):
     """
     Compute Acoustic Evenness Index of an audio signal.
 
@@ -243,21 +241,22 @@ def compute_AEI(spectro, freq_band_Hz, max_freq=10000, db_threshold=-50, freq_st
     bands_Hz = range(0, max_freq, freq_step)
     bands_bin = [f / freq_band_Hz for f in bands_Hz]
 
-    spec_AEI = 20*np.log10(spectro/np.max(spectro))
+    spec_AEI = 20*np.log10(pcm_spectro/dbfs_max)
     spec_AEI_bands = [spec_AEI[int(bands_bin[k]):int(bands_bin[k]+bands_bin[1]),] for k in range(len(bands_bin))]
 
-    values = [np.sum(spec_AEI_bands[k]>db_threshold)/float(spec_AEI_bands[k].size) for k in range(len(bands_bin))]
+    values = [np.sum(spec_AEI_bands[k]>dbfs_threshold)/float(spec_AEI_bands[k].size) for k in range(len(bands_bin))]
 
     return gini(values)
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def compute_ADI(spectro, freq_band_Hz,  max_freq=10000, db_threshold=-50, freq_step=1000):
+def compute_ADI(pcm_spectro, dbfs_max, freq_band_Hz, max_freq=10000, dbfs_threshold=-50, freq_step=1000):
     """
     Compute Acoustic Diversity Index.
 
     Reference: Villanueva-Rivera, L. J., B. C. Pijanowski, J. Doucette, and B. Pekin. 2011. A primer of acoustic analysis for landscape ecologists. Landscape Ecology 26: 1233-1246.
 
     spectro: spectrogram of the audio signal
+    dbfs_max: max value for decibel full scale
     freq_band_Hz: frequency band size of one bin of the spectrogram (in Hertz)
     max_freq: the maximum frequency to consider to compute ADI (in Hertz)
     db_threshold: the minimum dB value to consider for the bins of the spectrogram
@@ -267,14 +266,13 @@ def compute_ADI(spectro, freq_band_Hz,  max_freq=10000, db_threshold=-50, freq_s
     Ported from the soundecology R package.
     """
 
-
     bands_Hz = range(0, max_freq, freq_step)
     bands_bin = [f / freq_band_Hz for f in bands_Hz]
 
-    spec_ADI = 20*np.log10(spectro/np.max(spectro))
+    spec_ADI = 20*np.log10(pcm_spectro/dbfs_max)
     spec_ADI_bands = [spec_ADI[int(bands_bin[k]):int(bands_bin[k]+bands_bin[1]),] for k in range(len(bands_bin))]
 
-    values = [np.sum(spec_ADI_bands[k]>db_threshold)/float(spec_ADI_bands[k].size) for k in range(len(bands_bin))]
+    values = [np.sum(spec_ADI_bands[k]>dbfs_threshold)/float(spec_ADI_bands[k].size) for k in range(len(bands_bin))]
 
     # Shannon Entropy of the values
     #shannon = - sum([y * np.log(y) for y in values]) / len(values)  # Follows the R code. But log is generally log2 for Shannon entropy. Equivalent to shannon = False in soundecology.
