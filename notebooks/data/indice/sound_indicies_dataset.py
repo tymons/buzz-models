@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from data.spectrogram_dataset import calculate_spectrogram
 from data.sound import read_samples
 
-from data.indice.compute_indice import compute_ACI, compute_AEI, compute_spectrogram
+from data.indice.compute_indice import compute_ACI, compute_AEI, compute_BI, compute_spectrogram
 
 class SoundIndiciesDataset(Dataset):
     def __init__(self, filenames, hives, indicator_type, n_fft, hop_len, \
@@ -77,7 +77,12 @@ class SoundIndiciesDataset(Dataset):
             return (value, None)
 
         def get_BI(sound_file):
-            pass
+            """ Function for BI calculation """
+            sound_samples, sampling_rate = read_samples(filename, raw=True)
+
+            spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
+                                                                                                # as librosa implementatin from calculate_spectrogram need floats
+            return compute_BI(spectro, freqs, np.iinfo(sound_samples[0]).max, min_freq=20, max_freq=10000)
 
         # read sound samples from file
         filename = self.filenames[idx]

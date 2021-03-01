@@ -100,7 +100,7 @@ def compute_ACI(spectro, j_bin):
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def compute_BI(spectro, frequencies, min_freq = 2000, max_freq = 8000):
+def compute_BI(spectro, frequencies, dbfs_max, min_freq = 2000, max_freq = 8000):
     """
     Compute the Bioacoustic Index from the spectrogram of an audio signal.
     In this code, the Bioacoustic Index correspond to the area under the mean spectre (in dB) minus the minimum frequency value of this mean spectre.
@@ -109,6 +109,7 @@ def compute_BI(spectro, frequencies, min_freq = 2000, max_freq = 8000):
 
     spectro: the spectrogram of the audio signal
     frequencies: list of the frequencies of the spectrogram
+    dbfs_max: max value for dbfs 
     min_freq: minimum frequency (in Hertz)
     max_freq: maximum frequency (in Hertz)
 
@@ -118,17 +119,15 @@ def compute_BI(spectro, frequencies, min_freq = 2000, max_freq = 8000):
     min_freq_bin = int(np.argmin([abs(e - min_freq) for e in frequencies])) # min freq in samples (or bin)
     max_freq_bin = int(np.ceil(np.argmin([abs(e - max_freq) for e in frequencies]))) # max freq in samples (or bin)
 
-    min_freq_bin = min_freq_bin - 1 # alternative value to follow the R code
+    # min_freq_bin = min_freq_bin - 1 # alternative value to follow the R code
 
-
-
-    spectro_BI = 20 * np.log10(spectro/np.max(spectro))  #  Use of decibel values. Equivalent in the R code to: spec_left <- spectro(left, f = samplingrate, wl = fft_w, plot = FALSE, dB = "max0")$amp
+    spectro_BI = 20 * np.log10(spectro/dbfs_max)  #  Use of decibel values. Equivalent in the R code to: spec_left <- spectro(left, f = samplingrate, wl = fft_w, plot = FALSE, dB = "max0")$amp
     spectre_BI_mean = 10 * np.log10 (np.mean(10 ** (spectro_BI/10), axis=1))     # Compute the mean for each frequency (the output is a spectre). This is not exactly the mean, but it is equivalent to the R code to: return(a*log10(mean(10^(x/a))))
     spectre_BI_mean_segment =  spectre_BI_mean[min_freq_bin:max_freq_bin]   # Segment between min_freq and max_freq
     spectre_BI_mean_segment_normalized = spectre_BI_mean_segment - min(spectre_BI_mean_segment) # Normalization: set the minimum value of the frequencies to zero.
     area = np.sum(spectre_BI_mean_segment_normalized / (frequencies[1]-frequencies[0]))   # Compute the area under the spectre curve. Equivalent in the R code to: left_area <- sum(specA_left_segment_normalized * rows_width)
 
-    return area
+    return area, spectre_BI_mean_segment_normalized
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def compute_SH(spectro):
