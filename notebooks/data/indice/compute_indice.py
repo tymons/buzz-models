@@ -88,11 +88,9 @@ def compute_ACI(spectro, j_bin):
 
     """
 
-    #times = range(0, spectro.shape[1], j_bin) # relevant time indices
-    times = range(0, spectro.shape[1]-10, j_bin) # alternative time indices to follow the R code
-
+    times = range(0, spectro.shape[1], j_bin) # relevant time indices
+    # times = range(0, spectro.shape[1]-10, j_bin) # alternative time indices to follow the R code
     jspecs = [np.array(spectro[:,i:i+j_bin]) for i in times]  # sub-spectros of temporal size j
-
     aci = [sum((np.sum(abs(np.diff(jspec)), axis=1) / np.sum(jspec, axis=1))) for jspec in jspecs] 	# list of ACI values on each jspecs
     main_value = sum(aci)
     temporal_values = aci

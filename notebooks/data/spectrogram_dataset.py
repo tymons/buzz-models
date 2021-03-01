@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from data.sound import Sound
 
-def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scale=True):
+def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scale=True, db_scale=True):
     """ function for calculating spectrogram 
     
     Params:
@@ -20,31 +20,34 @@ def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scal
         hop_len (inst): samples for hop (next fft calculation)
         fmax (int): max frequency for calculated spectrogram to be constrained
         scale (bool): should scale spectrogram between 0 and 1
+        db_scale (bool): should magnitued be converted to db
 
     Returns
-        spectrogram_db ()
+        spectrogram_magnitude (list): spectrogram
     """
     # calculate spectrogram
     spectrogram = librosa.core.stft(samples, n_fft=nfft, hop_length=hop_len)
     spectrogram_magnitude = np.abs(spectrogram)
     # spectrogram_phase = np.angle(spectrogram)
-    spectrogram_db = librosa.amplitude_to_db(spectrogram_magnitude, ref=np.max)
+    if db_scale:
+        spectrogram_magnitude = librosa.amplitude_to_db(spectrogram_magnitude, ref=np.max)
+
     frequencies = librosa.fft_frequencies(sr=sampling_rate, n_fft=nfft)
     times = (np.arange(0, spectrogram_magnitude.shape[1])*hop_len)/sampling_rate
 
     if fmax:
         freq_slice = np.where((frequencies < fmax))
         frequencies = frequencies[freq_slice]
-        spectrogram_db = spectrogram_db[freq_slice, :]      # here extra dimension will be added
+        spectrogram_magnitude = spectrogram_magnitude[freq_slice, :]      # here extra dimension will be added
     else:
-        spectrogram_db = spectrogram_db[None, :, :]         # but without indicies we should add it manually
+        spectrogram_magnitude = spectrogram_magnitude[None, :, :]         # but without indicies we should add it manually
 
     if scale:
-        initial_shape = spectrogram_db.shape
-        spectrogram_db = MinMaxScaler().fit_transform(spectrogram_db.reshape(-1, 1)).reshape(initial_shape)
+        initial_shape = spectrogram_magnitude.shape
+        spectrogram_magnitude = MinMaxScaler().fit_transform(spectrogram_magnitude.reshape(-1, 1)).reshape(initial_shape)
     
-    spectrogram_db = spectrogram_db.astype(np.float32)
-    return spectrogram_db, frequencies, times
+    spectrogram_magnitude = spectrogram_magnitude.astype(np.float32)
+    return spectrogram_magnitude, frequencies, times
 
 class SpectrogramDataset(Dataset, Sound):
     """ Spectrogram dataset """
