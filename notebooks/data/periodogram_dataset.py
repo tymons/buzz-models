@@ -13,11 +13,17 @@ class PeriodogramDataset(Dataset, Sound):
     """ Periodogram dataset """
     def __init__(self, filenames, hives, scale_db=False, slice_freq=None):
         Sound.__init__(self, filenames=filenames, labels=hives)
-        print(f'params: scale_db({scale_db}), slice_freq({slice_freq})')
         self.slice_freq = slice_freq
         self.scale_db = scale_db
 
     def __getitem__(self, idx):
+        """ Method for pytorch dataloader """
+        periodogram, _ = self.get_item(idx)
+        return periodogram[None, :]
+        
+
+    def get_item(self, idx):
+        """ Function for getting periodogram """
         # read sound samples from file
         sound_samples, sampling_rate, label = Sound.read_sound(self, idx=idx, raw=True)
 
