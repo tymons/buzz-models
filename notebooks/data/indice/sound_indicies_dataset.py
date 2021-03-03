@@ -1,16 +1,12 @@
 import os
-import data.indice.compute_indice as ci
-
-from data.indice.acoustic_index import AudioFile
 from enum import Enum
-from torch.utils.data import Dataset
-
-import matplotlib.pyplot as plt
 
 from data.spectrogram_dataset import calculate_spectrogram
 from data.sound import read_samples
-
 from data.indice.compute_indice import compute_ACI, compute_AEI, compute_BI, compute_spectrogram
+
+from torch.utils.data import Dataset
+
 
 class SoundIndiciesDataset(Dataset):
     def __init__(self, filenames, hives, indicator_type, n_fft, hop_len, \

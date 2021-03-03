@@ -63,19 +63,20 @@ class Sound():
         self.files = filenames
         self.labels = labels
 
-    def read_sound(self, idx):
+    def read_sound(self, idx, raw=False):
         """ Method for reading sound
         
         Parameters:
             idx: idx of sound file to be read
-
+            raw: if sound should be in raw format (dont convert from pcm to float)
+            
         Returns:
             sounds_samples (list): list of sound samples
             sampling_rate (int): sampling rate
             label (int): label based on index from self.labels
          """
         filename = self.files[idx]
-        sound_samples, sampling_rate = read_samples(filename)
+        sound_samples, sampling_rate = read_samples(filename, raw)
         hive_name = filename.split(os.sep)[-2].split("_")[0]
         try:
             label = next(index for index, name in enumerate(self.labels) if name == hive_name)
