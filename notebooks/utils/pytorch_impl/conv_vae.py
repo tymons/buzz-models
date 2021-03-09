@@ -1,3 +1,6 @@
+import torch
+import math
+
 from torch import nn
 from utils.pytorch_impl.vae import reparameterize
 
@@ -42,10 +45,11 @@ class View(nn.Module):
 class ConvolutionalVAE(nn.Module):
     """ Class for convolutional variational autoencoder """
     def __init__(self, encoder_conv_sizes, encoder_mlp_sizes,
-                        decoder_conv_sizes, decoder_mlp_sizes, latent):
+                        decoder_conv_sizes, decoder_mlp_sizes, latent_size):
         super().__init__()
-        self.encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent)
-        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent)
+        self.encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
+        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent_size)
+        self.latent_size = latent_size
 
     def forward(self, x):
         means, log_var = self.encoder(x)
@@ -56,14 +60,14 @@ class ConvolutionalVAE(nn.Module):
 
 class ConvolutionalDecoder(nn.Module):
     """ Class for conv decoder """
-    def __init__(self, conv_features_sizes, linear_sizes, latent):
+    def __init__(self, conv_features_sizes, linear_sizes, latent_size):
         super().__init__()
 
         self.conv = nn.Sequential()
         self.mlp = nn.Sequential()
         self.sigmoid = nn.Sigmoid()
 
-        self.mlp.add_module(name=f"d-linear{0}", module=nn.Linear(latent, linear_sizes[0]))
+        self.mlp.add_module(name=f"d-linear{0}", module=nn.Linear(latent_size, linear_sizes[0]))
         for i, (in_size, out_size) in enumerate(zip(linear_sizes[:-1], linear_sizes[1:]), 1):
             self.mlp.add_module(name=f"d-linear{i}", module=nn.Linear(in_size, out_size))
             self.mlp.add_module(name=f"d-batchnorm{i}", module=nn.BatchNorm1d(out_size))

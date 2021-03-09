@@ -14,8 +14,10 @@ import numpy as np
 
 from torch.utils import data as tdata
 from sklearn.svm import SVC
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from datetime import datetime, timedelta
 
+from typing import Callable
 
 def read_sensor_data(filename, hive_sn, hives_ids, start_time, end_time, timezone_offset_hours, sensor_column_name):
     """ Function for reading smartula sensor file (from grafana) and build pandas dataframe """
@@ -285,3 +287,29 @@ def filter_strlist(input_str_list, *names):
     Returns:
     """
     return list(filter(lambda str_elem: (any(x in str_elem for x in [*names])), input_str_list))
+
+def batch_normalize(batch_data):
+    return _batch_perform(batch_data, lambda a : MinMaxScaler().fit_transform(a))
+
+
+def batch_standarize(batch_data):
+    """ Function for data standarization across batch """
+    return _batch_perform(batch_data, lambda a : StandardScaler().fit_transform(a))
+
+def _batch_perform(batch_data: torch.Tensor, operation: Callable):
+    """ Function for data normalization accross batch """
+    input_target = batch_data[:, 0, :]
+    initial_shape = input_target.shape
+
+    if input_target.ndim > 2:
+        input_target = input_target.reshape(initial_shape[0], -1)
+
+    output = torch.Tensor(operation(input_target).astype(np.float32))
+
+    if len(initial_shape) > 2:
+        output = output.reshape(initial_shape)
+
+    batch_data[:, 0, :] = output
+
+    return batch_data
+

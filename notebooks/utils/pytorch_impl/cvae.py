@@ -5,6 +5,7 @@ from comet_ml import Experiment
 from torch import nn
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from tqdm import tqdm
+from utils.data_utils import batch_normalize, batch_standarize
 
 def permutate_latent(latents_batch, inplace=False):
     """ Function for element permutation along specified axis
@@ -39,6 +40,8 @@ def cvae_loss(cvae_output, input_target, input_background, kld_weight, discrimin
     :param input_targetL
     :param input_background:
     """    
+    print(f'{cvae_output["target"].shape}/{input_target.shape}')
+
     # MSE target
     loss = nn.functional.mse_loss(cvae_output['target'], input_target, reduction='mean')
     # MSE background
@@ -92,8 +95,8 @@ def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None,
         with tqdm(total=len(dataloader_train)) as pbar:
             for target, background in tqdm(dataloader_train, position=0, leave=True):
                 # cvae
-                target[:, 0, :] = torch.Tensor(MinMaxScaler().fit_transform(StandardScaler().fit_transform(target[:, 0, :])))
-                background[:, 0, :] = torch.Tensor(MinMaxScaler().fit_transform(StandardScaler().fit_transform(background[:, 0, :])))
+                target = batch_normalize(batch_standarize(target))
+                background = batch_normalize(batch_standarize(background))
                 target = target.to(device)
                 background = background.to(device)
                 optimizer.zero_grad()
@@ -124,8 +127,8 @@ def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None,
             model.eval()
             with tqdm(total=len(dataloader_val)) as pbar:
                 for target_val, background_val in tqdm(dataloader_val, position=0, leave=True):
-                    target_val[:, 0, :] = torch.Tensor(MinMaxScaler().fit_transform(StandardScaler().fit_transform(target_val[:, 0, :])))
-                    background_val[:, 0, :] = torch.Tensor(MinMaxScaler().fit_transform(StandardScaler().fit_transform(background_val[:, 0, :])))
+                    target_val = batch_normalize(batch_standarize(target_val))
+                    background_val = batch_normalize(batch_standarize(background_val))
                     target_val = target_val.to(device)
                     background_val = background_val.to(device)
                     output_dict_val = model(target_val, background_val)
@@ -173,4 +176,4 @@ class cVAE(nn.Module):
                 'bg_qz_mean': bg_z_mean,
                 'bg_qz_log_var': bg_z_log_var,
                 'latent_qs_target': tg_s,       # we need this for disentangle and ensure that s and z distributions 
-                'latent_qz_target': tg_z}       # for target are independetn
+                'latent_qz_target': tg_z}       # for target are independent
