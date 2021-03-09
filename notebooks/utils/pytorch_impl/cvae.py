@@ -59,7 +59,7 @@ def cvae_loss(cvae_output, input_target, input_background, kld_weight, discrimin
 
     return loss
 
-def train_cvae(model, model_params, disc, disc_params, dataloader_train, dataloader_val):
+def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None, disc_params=None):
     """ function for training cvae 
     
     Parameters:
@@ -73,17 +73,13 @@ def train_cvae(model, model_params, disc, disc_params, dataloader_train, dataloa
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=model_params['learning_rate'], weight_decay=model_params['weight_decay'])
-    if disc:
-        optimizer_discriminator = torch.optim.Adam(disc.parameters(), lr=disc_params['learning_rate'], weight_decay=disc_params['weight_decay'])
-    else:
-        optimizer_discriminator = None
-
+    optimizer_discriminator = torch.optim.Adam(disc.parameters(), lr=disc_params['learning_rate'], weight_decay=disc_params['weight_decay']) if disc else None
     model.to(device)
 
-    alpha = None
+    alpha = disc_params['alpha'] if disc else None
     if disc:
         disc.to(device)
-        alpha = disc_params['alpha']
+        disc.train()
 
     loss = []
     dloss = []
@@ -92,10 +88,7 @@ def train_cvae(model, model_params, disc, disc_params, dataloader_train, dataloa
         # train the model #
         ###################
         print(f'-> training at epoch {epoch}', flush=True)
-        model.train()
-        if disc:
-            disc.train()
-
+        model.train()          
         with tqdm(total=len(dataloader_train)) as pbar:
             for target, background in tqdm(dataloader_train, position=0, leave=True):
                 # cvae
@@ -140,10 +133,7 @@ def train_cvae(model, model_params, disc, disc_params, dataloader_train, dataloa
 
                     pbar.update(1)
 
-        print(f'Epoch [{epoch+1}/{model_params["epochs"]}], LOSS: {loss.item()}, VAL_LOSS: {vloss.item()}')
-        if disc:
-            print(f'DISC_LOSS: {dloss.item()}')
-
+        print(f'Epoch [{epoch+1}/{model_params["epochs"]}], LOSS: {loss.item():.5f}, VAL_LOSS: {vloss.item():.5f} DISC_LOSS: {(dloss.item() if disc else -1):.5f}')
     return model
     
 
