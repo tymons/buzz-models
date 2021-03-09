@@ -283,6 +283,5 @@ def filter_strlist(input_str_list, *names):
         names (varg): names to be search for inside input_str_list
 
     Returns:
-        filtered_list (list): filtered list
     """
     return list(filter(lambda str_elem: (any(x in str_elem for x in [*names])), input_str_list))
