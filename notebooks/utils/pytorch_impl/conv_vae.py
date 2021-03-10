@@ -1,8 +1,24 @@
 import torch
 import math
+import numpy as np
 
 from torch import nn
 from utils.pytorch_impl.vae import reparameterize
+
+def calculate_feature_sizes_upscaling(layers: int, filter_size: int, padding: int, stride: int, input_size: tuple):
+    """ Function for calculating feature sizes for convolutional nerual network """
+    output_features_sizes = []
+    for layer_no in range(layers):
+        output = np.array([])
+        for input_dim in input_size:
+            output = np.expand_dims(output, axis=0)
+            output_size = ((input_dim - filter_size + 2*padding)//stride) + 1
+            output[0, :] = output_size
+
+        input_size = output
+        output_features_sizes.append(output)
+
+    return output_features_sizes
 
 def _conv2d_block(in_f, out_f, *args, **kwargs):
     """ Function for building convolutional block
@@ -45,10 +61,10 @@ class View(nn.Module):
 class ConvolutionalVAE(nn.Module):
     """ Class for convolutional variational autoencoder """
     def __init__(self, encoder_conv_sizes, encoder_mlp_sizes,
-                        decoder_conv_sizes, decoder_mlp_sizes, latent_size):
+                        decoder_conv_sizes, decoder_mlp_sizes, input_size, latent_size):
         super().__init__()
         self.encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
-        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent_size)
+        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent_size, (input_size[0]//input_size[1]))
         self.latent_size = latent_size
 
     def forward(self, x):
@@ -60,7 +76,7 @@ class ConvolutionalVAE(nn.Module):
 
 class ConvolutionalDecoder(nn.Module):
     """ Class for conv decoder """
-    def __init__(self, conv_features_sizes, linear_sizes, latent_size):
+    def __init__(self, conv_features_sizes, linear_sizes, latent_size, input_ratio):
         super().__init__()
 
         self.conv = nn.Sequential()
@@ -73,9 +89,11 @@ class ConvolutionalDecoder(nn.Module):
             self.mlp.add_module(name=f"d-batchnorm{i}", module=nn.BatchNorm1d(out_size))
             self.mlp.add_module(name=f"d-relu{i}", module=nn.ReLU())
     
-        temp_tensor = torch.empty(linear_sizes[-1])
-        target_size = int(math.sqrt(linear_sizes[-1]//conv_features_sizes[0]))
-        desired_shape = torch.reshape(temp_tensor, (conv_features_sizes[0], target_size, target_size)).shape
+        w_h = int(math.sqrt(linear_sizes[-1]//conv_features_sizes[0]))      # width and height
+        input_ratio = int(math.sqrt(input_ratio))
+        w = input_ratio*w_h
+        h = w_h//input_ratio
+        desired_shape = torch.reshape(torch.empty(linear_sizes[-1]), (conv_features_sizes[0], w, h)).shape
         self.view = View([-1, *desired_shape])
 
         for i, (in_size, out_size) in enumerate(zip(conv_features_sizes[:-1], conv_features_sizes[1:])):

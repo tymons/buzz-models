@@ -8,7 +8,7 @@ from utils.pytorch_impl.vae import reparameterize
 class ConvolutionalCVAE(nn.Module):
     """ Class for convolutional cvae """
     def __init__(self, encoder_conv_sizes, encoder_mlp_sizes,
-                    decoder_conv_sizes, decoder_mlp_sizes, latent_size):
+                    decoder_conv_sizes, decoder_mlp_sizes, latent_size, input_size):
 
         super().__init__()	
 
@@ -21,10 +21,9 @@ class ConvolutionalCVAE(nn.Module):
         self.latent_size = latent_size
         self.s_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
         self.z_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
-        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, 2 * latent_size)
+        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, 2 * latent_size, input_size[0]//input_size[1])
 
     def forward(self, target, background):
-        print(target.shape)
         tg_s_mean, tg_s_log_var = self.s_encoder(target)
         tg_z_mean, tg_z_log_var = self.z_encoder(target)
         bg_z_mean, bg_z_log_var = self.z_encoder(background)    

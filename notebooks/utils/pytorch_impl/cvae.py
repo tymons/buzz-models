@@ -15,11 +15,13 @@ def permutate_latent(latents_batch, inplace=False):
         inplace (bool): modify original tensor or not
     Returns
     """
+    latents_batch = latents_batch.squeeze()
+    
     data = latents_batch.detach().clone() if inplace == False else latents_batch
 
     for column_idx in range(latents_batch.shape[-1]):
-        rand_indicies = torch.randperm(latents_batch[:, :, column_idx].shape[0])
-        latents_batch[:, :, column_idx] = latents_batch[:, :, column_idx][rand_indicies]
+        rand_indicies = torch.randperm(latents_batch[:, column_idx].shape[0])
+        latents_batch[:, column_idx] = latents_batch[:, column_idx][rand_indicies]
 
     return data
 
@@ -31,7 +33,7 @@ def discriminator_loss(log_ratio_p, log_ratio_q):
 
 def _kld_loss(mean, log_var):
     """ KLD loss for normal distribution"""
-    return torch.mean(-0.5 * torch.mean(1 + log_var - mean ** 2 - log_var.exp(), dim = 0), dim =1).item()
+    return torch.mean(-0.5 * torch.sum(1 + log_var - mean ** 2 - log_var.exp())).item()
 
 def cvae_loss(cvae_output, input_target, input_background, kld_weight, discriminator=None, discriminator_aplha=None):
     """
@@ -40,8 +42,6 @@ def cvae_loss(cvae_output, input_target, input_background, kld_weight, discrimin
     :param input_targetL
     :param input_background:
     """    
-    print(f'{cvae_output["target"].shape}/{input_target.shape}')
-
     # MSE target
     loss = nn.functional.mse_loss(cvae_output['target'], input_target, reduction='mean')
     # MSE background
@@ -55,7 +55,7 @@ def cvae_loss(cvae_output, input_target, input_background, kld_weight, discrimin
 
     if discriminator and discriminator_aplha:
         # total correction loss
-        q = torch.cat((cvae_output["latent_qs_target"], cvae_output["latent_qz_target"]), axis=2)
+        q = torch.cat((cvae_output["latent_qs_target"], cvae_output["latent_qz_target"]), axis=-1)
         q_score, _ = discriminator(q, torch.zeros_like(q))
         disc_loss = discriminator_aplha * torch.mean(torch.log(q_score/(1-q_score)))
         loss += disc_loss
@@ -95,8 +95,8 @@ def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None,
         with tqdm(total=len(dataloader_train)) as pbar:
             for target, background in tqdm(dataloader_train, position=0, leave=True):
                 # cvae
-                target = batch_normalize(batch_standarize(target))
-                background = batch_normalize(batch_standarize(background))
+                target = batch_normalize(target)
+                background = batch_normalize(background)
                 target = target.to(device)
                 background = background.to(device)
                 optimizer.zero_grad()
@@ -107,7 +107,7 @@ def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None,
 
                 # discirminator
                 if disc:
-                    q = torch.cat((output_dict["latent_qs_target"].detach(), output_dict["latent_qz_target"].detach()), axis=2).to(device)
+                    q = torch.cat((output_dict["latent_qs_target"].detach(), output_dict["latent_qz_target"].detach()), axis=-1).to(device)
                     q_bar = permutate_latent(q)
                     q_bar = q_bar.to(device)
 
@@ -127,8 +127,8 @@ def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None,
             model.eval()
             with tqdm(total=len(dataloader_val)) as pbar:
                 for target_val, background_val in tqdm(dataloader_val, position=0, leave=True):
-                    target_val = batch_normalize(batch_standarize(target_val))
-                    background_val = batch_normalize(batch_standarize(background_val))
+                    target_val = batch_normalize(target_val)
+                    background_val = batch_normalize(background_val)
                     target_val = target_val.to(device)
                     background_val = background_val.to(device)
                     output_dict_val = model(target_val, background_val)
