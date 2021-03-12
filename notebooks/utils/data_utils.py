@@ -2,6 +2,7 @@ import glob
 import os
 import math
 
+from enum import Enum
 from scipy.io import wavfile
 from tqdm import tqdm
 
@@ -18,6 +19,15 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from datetime import datetime, timedelta
 
 from typing import Callable
+
+class ModelType(Enum):
+    CVAE = 'cvae'
+    CONV_CVAE = 'conv_cvae'
+    VAE = 'vae'
+    CONV_VAE = 'conv_vae'
+    AE = 'ae'
+    CONV_AE = 'conv_ae'
+
 
 def read_sensor_data(filename, hive_sn, hives_ids, start_time, end_time, timezone_offset_hours, sensor_column_name):
     """ Function for reading smartula sensor file (from grafana) and build pandas dataframe """
@@ -289,6 +299,7 @@ def filter_strlist(input_str_list, *names):
     return list(filter(lambda str_elem: (any(x in str_elem for x in [*names])), input_str_list))
 
 def batch_normalize(batch_data):
+    """ Function for data normalization accross batch """
     return _batch_perform(batch_data, lambda a : MinMaxScaler().fit_transform(a))
 
 
@@ -312,4 +323,3 @@ def _batch_perform(batch_data: torch.Tensor, operation: Callable):
     batch_data[:, 0, :] = output
 
     return batch_data
-

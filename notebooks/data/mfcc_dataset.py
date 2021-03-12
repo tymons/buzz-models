@@ -12,7 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 from data.sound import Sound
 
 class MfccDataset(Dataset, Sound):
-    """ MFCC dataset - here we treat sound as stationary signal """
+    """ MFCC dataset - here we treat sound as stationary signal by taking mean of melspectrogram """
     def __init__(self, filenames, hives, mels, nfft, hop_len):
         Sound.__init__(self, filenames, hives)
         self.n_mels = mels

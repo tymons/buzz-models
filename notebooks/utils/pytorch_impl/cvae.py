@@ -1,11 +1,12 @@
 import torch 
 import utils.pytorch_impl.vae as v 
 
-from comet_ml import Experiment
 from torch import nn
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from tqdm import tqdm
 from utils.data_utils import batch_normalize, batch_standarize
+
+from comet_ml import Experiment
 
 def permutate_latent(latents_batch, inplace=False):
     """ Function for element permutation along specified axis

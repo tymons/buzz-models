@@ -98,7 +98,7 @@ class SoundIndiciesDataset(Dataset):
         return ((feature, features_temporal), label)
         
     class SoundIndicator(Enum):
-        ACI = 1     # acoustic complexity index
-        ADI = 2     # acoustic diversity index
-        AEI = 3     # acoustic evenness index
-        BI = 4      # bioacustic index
+        ACI = 'aci'     # acoustic complexity index
+        ADI = 'adi'     # acoustic diversity index
+        AEI = 'aei'     # acoustic evenness index
+        BI = 'bi'      # bioacustic index
