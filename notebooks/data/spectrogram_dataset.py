@@ -83,16 +83,16 @@ class SpectrogramDataset(Dataset, Sound):
 
     def get_item(self, idx):
         """ Wrapper for reading spectrogram from file along with label """
-        (data, _, _), label = self.read_item(idx)
-        return data, label
+        (data, _, _), labels = self.read_item(idx)
+        return data, labels
 
     def __getitem__(self, idx):
         """ Wrapper for getting item from Spectrogram dataset """
-        (data, _, _), _ = self.read_item(idx)
-        return data
+        (data, _, _), labels = self.read_item(idx)
+        return data, labels
  
     def __len__(self):
-        return len(self.files)
+        return len(self.filenames)
 
     def sample(self, idx=None):
         """ Function for sampling dataset 

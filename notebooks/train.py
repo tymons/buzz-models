@@ -9,7 +9,9 @@ import ast
 from colorama import init, deinit, Fore, Back, Style
 
 from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_datalist
-from utils.features_enum import SoundFeatureDataset
+from utils.features import SoundFeatureDataset
+
+import matplotlib.pyplot as plt
 
 def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, data_check_reinit: bool):
     """ Function for getting soundlist from root folder """
@@ -43,26 +45,29 @@ def main():
     # optional arguments
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
-    parser.add_argument("--find_best", type=bool, default=False, help="name of debug file")
-    parser.add_argument("--dict_feature_params", type=ast.literal_eval)
-    parser.add_argument("--batch_size", default=32, type=int)                               # TODO: implement variational batch size
+    parser.add_argument("--config_file", type=str)
     args = parser.parse_args()
 
+    # read config file
+    f = open(args.config_file)
+    config = json.load(f)
+    f.close()
+
     # setup logger
-    # logging.basicConfig(
-    #     level=logging.DEBUG,
-    #     format='%(asctime)s [%(levelname)s] %(message)s',
-    #     handlers=[
-    #         logging.FileHandler(args.log_file),
-    #         logging.StreamHandler()
-    #     ]
-    # )
-    # logging.info(f'starting smartula experiment for {ModelType(args.model_type.lower())} model and {InputType(args.input_type.lower())}.')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(args.log_file),
+            logging.StreamHandler()
+        ]
+    )
+    logging.info(f'starting smartula experiment for {ModelType(args.model_type.lower())} model and {InputType(args.input_type.lower())}.')
 
     # read sound filenames from 'valid-files.txt' files
     sound_filenames, labels = get_soundfilenames_and_labels(args.root_folder, 'valid-files.txt', args.check_data)
     # get train and val loaders
-    train_loader, val_loader = SoundFeatureDataset.get_dataloaders(args.feature, sound_filenames, labels, args.batch_size, **args.dict_feature_params)
+    train_loader, val_loader = SoundFeatureDataset.get_dataloaders(args.feature, sound_filenames, labels, config['model'].get('batch_size', 32), config['features'])
 
     if os.name == 'nt':
         deinit()      # colorama resotore

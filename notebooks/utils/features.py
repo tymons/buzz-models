@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, random_split
 
 from data.periodogram_dataset import PeriodogramDataset
 from data.spectrogram_dataset import SpectrogramDataset
+from data.mfcc_dataset import MfccDataset
 from data.melspectrogram_dataset import MelSpectrogramDataset
 from data.indice.sound_indicies_dataset import SoundIndiciesDataset
 
@@ -14,49 +15,54 @@ class SoundFeatureDataset(Enum):
     PERIODOGRAM = 'periodogram'
     MFCC = 'mfcc'
     SOUND_INDICIES = 'indicies' # bioacustic signal indicies
+        
 
-
-    def _get_spectrogram_dataset(sound_filenames, labels, **feature_parameters):
+    def _get_spectrogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting spectrogram """
-        nfft = feature_parameters.get('nfft', 4096)
-        hop_len = feature_parameters.get('hop_len', (4096//3)+30)
-        fmax = feature_parameters.get('fmax', 2750)
+        spectrogram_params = features_params_dict.get('spectrogram', {})
+        nfft = spectrogram_params.get('nfft', 4096)
+        hop_len = spectrogram_params.get('hop_len', (4096//3)+30)
+        fmax = spectrogram_params.get('fmax', 2750)
 
         return SpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, fmax=fmax)
 
-    def _get_melspectrogram_dataset(sound_filenames, labels, **feature_parameters):
+    def _get_melspectrogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting melspectrogram dataset """
-        nfft = feature_parameters.get('nfft', 4096)
-        hop_len = feature_parameters.get('hop_len', (4096//3)+30)
-        fmax = feature_parameters.get('fmax', 2750)
-        no_mels = feature_parameters.get('mels', 64)
+        melspectrogram_params = features_params_dict.get('melspectrogram', {})
+        nfft = melspectrogram_params.get('nfft', 4096)
+        hop_len = melspectrogram_params.get('hop_len', (4096//3)+30)
+        no_mels = melspectrogram_params.get('mels', 64)
 
         return MelSpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels)
 
-    def _get_periodogram_dataset(sound_filenames, labels, **feature_parameters):
+    def _get_periodogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting periodogram dataset """
-        slice_freq = feature_parameters.get('slice_freq', (0, 2048))
+        periodogram_params = features_params_dict.get('periodogram', {})
+        start_freq = periodogram_params.get('slice_frequency_start', 0)
+        stop_freq = periodogram_params.get('slice_frequency_stop', 2048)
+        db_scale = periodogram_params.get('scale_db', False)
 
-        return PeriodogramDataset(sound_filenames, lables, slice_freq=slice_freq)
+        return PeriodogramDataset(sound_filenames, labels, slice_freq=(start_freq, stop_freq))
 
-    def _get_mfcc_dataset(sound_filenames, labels, **feature_parameters):
+    def _get_mfcc_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting mfcc from sound """
-        nfft = feature_parameters.get('nfft', 4096)
-        hop_len = feature_parameters.get('hop_len', (4096//3)+30)
-        fmax = feature_parameters.get('fmax', 2750)
-        no_mels = feature_parameters.get('mels', 64)
+        mfcc_params = features_params_dict.get('mfcc', {})
+        nfft = mfcc_params.get('nfft', 4096)
+        hop_len = mfcc_params.get('hop_len', (4096//3)+30)
+        no_mels = mfcc_params.get('mels', 64)
 
         return MfccDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels)
 
-    def _get_indicies_dataset(sound_filenames, labels, **feature_parameters):
+    def _get_indicies_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting indicies from sounds """
-        indicator_type = feature_parameters.get('indicator_type', 'aci')
+        sound_indicies_params = features_params_dict.get('sound_indicies', {})
+        indicator_type = sound_indicies_params.get('type', 'aci')
+        config = sound_indicies_params.get('config', {'j_samples': 512})
 
-        return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **feature_parameters)
+        return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **config)
 
     @classmethod
-    def get_dataloaders(cls, input_type, sound_filenames, labels, batch_size, \
-                            ratio=0.15, num_workers=4, **feature_parameters):
+    def get_dataloaders(cls, input_type, sound_filenames, labels, batch_size, features_params_dict, ratio=0.15, num_workers=4):
         """ Function for getting dataloaders 
         
         Parameters:
@@ -72,7 +78,7 @@ class SoundFeatureDataset(Enum):
         """
         method_name = f'_get_{input_type.lower()}_dataset'
         function = getattr(cls, method_name, lambda: 'invalid dataset')
-        dataset = function(sound_filenames, labels, **feature_parameters)
+        dataset = function(sound_filenames, labels, features_params_dict)
 
         val_amount = int(dataset.__len__() * ratio)
         train_set, val_set = random_split(dataset, [(dataset.__len__() - val_amount), val_amount])

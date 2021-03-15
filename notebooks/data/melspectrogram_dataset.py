@@ -43,7 +43,7 @@ class MelSpectrogramDataset(Dataset, Sound):
         return (mel_scaled_spectrogram_db, label)
  
     def __len__(self):
-        return len(self.files)
+        return len(self.filenames)
 
     def sample(self, idx=None):
         """ Function for sampling dataset 

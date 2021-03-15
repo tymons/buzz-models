@@ -60,7 +60,7 @@ def read_samples(filename, raw=False):
 
 class Sound():
     def __init__(self, filenames, labels):
-        self.files = filenames
+        self.filenames = filenames
         self.labels = labels
 
     def read_sound(self, idx, raw=False):
@@ -75,7 +75,7 @@ class Sound():
             sampling_rate (int): sampling rate
             label (int): label based on index from self.labels
          """
-        filename = self.files[idx]
+        filename = self.filenames[idx]
         sound_samples, sampling_rate = read_samples(filename, raw)
         hive_name = filename.split(os.sep)[-2].split("_")[0]
         try:

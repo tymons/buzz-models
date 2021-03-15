@@ -31,4 +31,4 @@ class MfccDataset(Dataset, Sound):
         return (mfccs_avg, label)
         
     def __len__(self):
-        return len(self.files)
+        return len(self.filenames)

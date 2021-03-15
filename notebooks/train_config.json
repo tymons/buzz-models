@@ -1,0 +1,36 @@
+{
+    "features": {
+        "spectrogram": {
+            "nfft": 4096,
+            "hop_len": 1395,
+            "fmax": 2750
+        },
+        "melspectrogram": {
+            "nfft": 4096,
+            "hop_len": 300,
+            "mels": 13
+        },
+        "periodogram": {
+            "slice_frequency_start": 0,
+            "slice_frequency_stop": 8000,
+            "scale_db": false
+        },
+        "mfcc": {
+            "nfft": 4096,
+            "hop_len": 1395,
+            "mels": 64
+        },
+        "sound_indicies": {
+            "type": "aci",
+            "config": {
+                "nfft": 4096,
+                "hop_len": 1395,
+                "scale_db": true,
+                "j_samples": 10
+            }
+        }
+    },
+    "model": {
+        "batch_size": 64
+    }
+}

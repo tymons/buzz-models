@@ -12,20 +12,20 @@ from scipy import signal, fftpack
 class PeriodogramDataset(Dataset, Sound):
     """ Periodogram dataset """
     def __init__(self, filenames, hives, scale_db=False, slice_freq=None):
-        Sound.__init__(self, filenames=filenames, labels=hives)
+        Sound.__init__(self, filenames, hives)
         self.slice_freq = slice_freq
         self.scale_db = scale_db
 
     def __getitem__(self, idx):
         """ Method for pytorch dataloader """
-        periodogram, _ = self.get_item(idx)
-        return periodogram[None, :]
+        (periodogram, _), labels = self.get_item(idx)
+        return periodogram[None, :], labels
         
 
     def get_item(self, idx):
         """ Function for getting periodogram """
         # read sound samples from file
-        sound_samples, sampling_rate, label = Sound.read_sound(self, idx=idx, raw=True)
+        sound_samples, sampling_rate, labels = Sound.read_sound(self, idx=idx, raw=True)
 
         periodogram = abs(np.fft.rfft(sound_samples, sampling_rate))[1:]
         if self.scale_db:
@@ -37,7 +37,7 @@ class PeriodogramDataset(Dataset, Sound):
             frequencies = frequencies[self.slice_freq[0]:self.slice_freq[1]]
 
         periodogram = periodogram.astype(np.float32)
-        return periodogram, frequencies
+        return (periodogram, frequencies), labels
         
     def __len__(self):
-        return len(self.files)
+        return len(self.filenames)
