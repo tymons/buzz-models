@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
-from data.sound import Sound
+from utils.dataset.sound import Sound
 
 def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scale=True, db_scale=True):
     """ function for calculating spectrogram 

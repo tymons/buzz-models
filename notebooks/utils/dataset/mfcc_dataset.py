@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
-from data.sound import Sound
+from utils.dataset.sound import Sound
 
 class MfccDataset(Dataset, Sound):
     """ MFCC dataset - here we treat sound as stationary signal by taking mean of melspectrogram """

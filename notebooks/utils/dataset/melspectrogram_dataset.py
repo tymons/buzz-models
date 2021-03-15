@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
-from data.sound import Sound
+from utils.dataset.sound import Sound
 
 class MelSpectrogramDataset(Dataset, Sound):
     """ MelSpectrogram dataset """

@@ -1,22 +1,14 @@
-from enum import Enum
-
 from torch.utils.data import DataLoader, random_split
 
-from data.periodogram_dataset import PeriodogramDataset
-from data.spectrogram_dataset import SpectrogramDataset
-from data.mfcc_dataset import MfccDataset
-from data.melspectrogram_dataset import MelSpectrogramDataset
-from data.indice.sound_indicies_dataset import SoundIndiciesDataset
+from utils.dataset.periodogram_dataset import PeriodogramDataset
+from utils.dataset.spectrogram_dataset import SpectrogramDataset
+from utils.dataset.mfcc_dataset import MfccDataset
+from utils.dataset.melspectrogram_dataset import MelSpectrogramDataset
+from utils.dataset.bioacustics_indicies.sound_indicies_dataset import SoundIndiciesDataset
 
 
-class SoundFeatureDataset(Enum):
-    SPECTROGRAM = 'spectrogram'
-    MELSPECTROGRAM = 'melspectrogram'
-    PERIODOGRAM = 'periodogram'
-    MFCC = 'mfcc'
-    SOUND_INDICIES = 'indicies' # bioacustic signal indicies
-        
-
+class SoundFeatureFactory():        
+    """ Factory for data loaders """
     def _get_spectrogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting spectrogram """
         spectrogram_params = features_params_dict.get('spectrogram', {})
@@ -62,7 +54,7 @@ class SoundFeatureDataset(Enum):
         return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **config)
 
     @classmethod
-    def get_dataloaders(cls, input_type, sound_filenames, labels, batch_size, features_params_dict, ratio=0.15, num_workers=4):
+    def build_dataloaders(cls, input_type, sound_filenames, labels, batch_size, features_params_dict, ratio=0.15, num_workers=4):
         """ Function for getting dataloaders 
         
         Parameters:

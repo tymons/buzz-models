@@ -5,11 +5,15 @@ import argparse
 import logging
 import json
 import ast
+import torch
 
 from colorama import init, deinit, Fore, Back, Style
 
 from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_datalist
-from utils.features import SoundFeatureDataset
+from utils.feature_factory import SoundFeatureFactory
+from utils.model_factory import HiveModelFactory
+
+from torchsummary import summary
 
 import matplotlib.pyplot as plt
 
@@ -37,9 +41,12 @@ def main():
     if os.name == 'nt':
         init()      # colorama init stdout and stderr as win32 system calls
 
+    # check device for pytorch
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     parser = argparse.ArgumentParser(description='Process some integers.')
     # positional arguments
-    parser.add_argument('model_type', metavar='model_type', type=str, help='Model Type')
+    parser.add_argument('model_type', metavar='model_type', type=str, help='Model Type [vae, cvae, contrastive_vae, contrastive_cvae, ae, cae]')
     parser.add_argument('feature', metavar='feature', type=str, help='Input feature')
     parser.add_argument('root_folder', metavar='root_folder', type=str, help='Root folder for data')
     # optional arguments
@@ -62,12 +69,19 @@ def main():
             logging.StreamHandler()
         ]
     )
-    logging.info(f'starting smartula experiment for {ModelType(args.model_type.lower())} model and {InputType(args.input_type.lower())}.')
+    logging.info(f'starting smartula experiment for {args.model_type} model and {args.feature}.')
 
     # read sound filenames from 'valid-files.txt' files
     sound_filenames, labels = get_soundfilenames_and_labels(args.root_folder, 'valid-files.txt', args.check_data)
     # get train and val loaders
-    train_loader, val_loader = SoundFeatureDataset.get_dataloaders(args.feature, sound_filenames, labels, config['model'].get('batch_size', 32), config['features'])
+    train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, sound_filenames, labels, config['learning'].get('batch_size', 32), config['features'])
+    # get model
+    model = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
+
+    try:
+        print(summary(model.to(device), train_loader.dataset[0][0].shape))
+    except Exception as e:
+        print(Back.RED + 'model self-check failure: ' + str(e))
 
     if os.name == 'nt':
         deinit()      # colorama resotore

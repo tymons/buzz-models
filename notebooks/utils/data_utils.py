@@ -20,14 +20,6 @@ from datetime import datetime, timedelta
 
 from typing import Callable
 
-class ModelType(Enum):
-    CVAE = 'cvae'
-    CONV_CVAE = 'conv_cvae'
-    VAE = 'vae'
-    CONV_VAE = 'conv_vae'
-    AE = 'ae'
-    CONV_AE = 'conv_ae'
-
 
 def read_sensor_data(filename, hive_sn, hives_ids, start_time, end_time, timezone_offset_hours, sensor_column_name):
     """ Function for reading smartula sensor file (from grafana) and build pandas dataframe """

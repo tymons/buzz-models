@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from torch import nn
-from utils.pytorch_impl.vae import reparameterize
+from utils.models.vae import reparameterize
 
 def calculate_feature_sizes_upscaling(layers: int, filter_size: int, padding: int, stride: int, input_size: tuple):
     """ Function for calculating feature sizes for convolutional nerual network """
@@ -61,7 +61,7 @@ class View(nn.Module):
 class ConvolutionalVAE(nn.Module):
     """ Class for convolutional variational autoencoder """
     def __init__(self, encoder_conv_sizes, encoder_mlp_sizes,
-                        decoder_conv_sizes, decoder_mlp_sizes, input_size, latent_size):
+                        decoder_conv_sizes, decoder_mlp_sizes, latent_size, input_size):
         super().__init__()
         self.encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
         self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent_size, (input_size[0]//input_size[1]))

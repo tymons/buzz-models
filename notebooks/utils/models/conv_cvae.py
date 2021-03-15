@@ -2,8 +2,8 @@ import torch
 
 from torch import nn
 
-from utils.pytorch_impl.conv_vae import ConvolutionalDecoder, ConvolutionalEncoder
-from utils.pytorch_impl.vae import reparameterize
+from utils.models.conv_vae import ConvolutionalDecoder, ConvolutionalEncoder
+from utils.models.vae import reparameterize
 
 class ConvolutionalCVAE(nn.Module):
     """ Class for convolutional cvae """

@@ -1,5 +1,5 @@
 import torch 
-import utils.pytorch_impl.vae as v 
+import utils.models.vae as v 
 
 from torch import nn
 from sklearn.preprocessing import StandardScaler, MinMaxScaler

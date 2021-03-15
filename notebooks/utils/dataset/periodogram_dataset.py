@@ -6,8 +6,9 @@ import numpy as np
 from math import sqrt
 from torch.utils.data import Dataset
 from scipy.fftpack import fft, fftfreq
-from data.sound import Sound
 from scipy import signal, fftpack
+
+from utils.dataset.sound import Sound
 
 class PeriodogramDataset(Dataset, Sound):
     """ Periodogram dataset """
