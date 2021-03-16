@@ -31,17 +31,18 @@ def reparameterize(mu, log_var):
 
 class VAE(nn.Module):
     """ Class for variational autoencoder """
-    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes):
+    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes, input_size):
 
         super().__init__()
 
         assert type(encoder_layer_sizes) == list
         assert type(latent_size) == int
         assert type(decoder_layer_sizes) == list
+        assert type(input_size) == int
 
         self.latent_size = latent_size
-        self.encoder = Encoder(encoder_layer_sizes, latent_size)
-        self.decoder = Decoder(decoder_layer_sizes, latent_size)
+        self.encoder = Encoder(encoder_layer_sizes, latent_size, input_size)
+        self.decoder = Decoder(decoder_layer_sizes, latent_size, input_size)
 
     def forward(self, x):
         means, log_var = self.encoder(x)
@@ -55,15 +56,21 @@ class VAE(nn.Module):
     
 class Encoder(nn.Module):
     """ Class for encoder """
-    def __init__(self, layer_sizes, latent_size):
+    def __init__(self, layer_sizes, latent_size, input_size):
 
         super().__init__()
 
         self.MLP = nn.Sequential()
 
-        for i, (in_size, out_size) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:])):
-            self.MLP.add_module(name="L{:d}".format(i), module=nn.Linear(in_size, out_size))
-            self.MLP.add_module(name="A{:d}".format(i), module=nn.ReLU())
+        # input layer
+        self.MLP.add_module(name=f"L{0}", module=nn.Linear(input_size, layer_sizes[0]))
+        self.MLP.add_module(name=f"A{0}", module=nn.ReLU())
+        self.MLP.add_module(name=f"D{0}", module=nn.Dropout(p=0.1))
+        # following layers
+        for i, (in_size, out_size) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:]), 1):
+            self.MLP.add_module(name=f"L{i}", module=nn.Linear(in_size, out_size))
+            self.MLP.add_module(name=f"A{i}", module=nn.ReLU())
+            self.MLP.add_module(name=f"D{i}", module=nn.Dropout(p=0.1))
 
         self.linear_means = nn.Linear(layer_sizes[-1], latent_size)
         self.linear_log_var = nn.Linear(layer_sizes[-1], latent_size)
@@ -79,7 +86,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     """ Class for decoder """
-    def __init__(self, layer_sizes, latent_size):
+    def __init__(self, layer_sizes, latent_size, output_size):
 
         super().__init__()
 
@@ -88,12 +95,14 @@ class Decoder(nn.Module):
         input_size = latent_size
 
         for i, (in_size, out_size) in enumerate(zip([input_size]+layer_sizes[:-1], layer_sizes)):
-            self.MLP.add_module(
-                name="L{:d}".format(i), module=nn.Linear(in_size, out_size))
-            if i+1 < len(layer_sizes):
-                self.MLP.add_module(name="A{:d}".format(i), module=nn.ReLU())
-            else:
-                self.MLP.add_module(name="sigmoid", module=nn.Sigmoid())
+            self.MLP.add_module(name=f"L{i}", module=nn.Linear(in_size, out_size))
+            self.MLP.add_module(name=f"A{i}", module=nn.ReLU())
+            self.MLP.add_module(name=f"D{i}", module=nn.Dropout(p=0.1))
+
+        # output layer
+        self.MLP.add_module(name=f"L{len(layer_sizes)}", module=nn.Linear(layer_sizes[-1], output_size))
+        self.MLP.add_module(name="sigmoid", module=nn.Sigmoid())
+
 
     def forward(self, z):
         x = self.MLP(z)

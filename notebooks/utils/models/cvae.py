@@ -143,18 +143,19 @@ def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None,
 
 class cVAE(nn.Module):
     """ Class for Contrastive autoencoder """
-    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes):
+    def __init__(self, encoder_layer_sizes, latent_size, decoder_layer_sizes, input_size):
 
         super().__init__()
 
         assert type(encoder_layer_sizes) == list
         assert type(latent_size) == int
         assert type(decoder_layer_sizes) == list
+        assert type(input_size) == int
 
         self.latent_size = latent_size
-        self.s_encoder = v.Encoder(encoder_layer_sizes, latent_size)
-        self.z_encoder = v.Encoder(encoder_layer_sizes, latent_size)
-        self.decoder = v.Decoder(decoder_layer_sizes, 2 * latent_size)
+        self.s_encoder = v.Encoder(encoder_layer_sizes, latent_size, input_size)
+        self.z_encoder = v.Encoder(encoder_layer_sizes, latent_size, input_size)
+        self.decoder = v.Decoder(decoder_layer_sizes, 2 * latent_size, input_size)
 
     def forward(self, target, background):
         tg_s_mean, tg_s_log_var = self.s_encoder(target)

@@ -7,15 +7,12 @@ import json
 import ast
 import torch
 
-from colorama import init, deinit, Fore, Back, Style
+from colorama import init, deinit, Back
 
 from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_datalist
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
 
-from torchsummary import summary
-
-import matplotlib.pyplot as plt
 
 def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, data_check_reinit: bool):
     """ Function for getting soundlist from root folder """
@@ -40,9 +37,6 @@ def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, 
 def main():
     if os.name == 'nt':
         init()      # colorama init stdout and stderr as win32 system calls
-
-    # check device for pytorch
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     parser = argparse.ArgumentParser(description='Process some integers.')
     # positional arguments
@@ -77,11 +71,6 @@ def main():
     train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, sound_filenames, labels, config['learning'].get('batch_size', 32), config['features'])
     # get model
     model = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
-
-    try:
-        print(summary(model.to(device), train_loader.dataset[0][0].shape))
-    except Exception as e:
-        print(Back.RED + 'model self-check failure: ' + str(e))
 
     if os.name == 'nt':
         deinit()      # colorama resotore
