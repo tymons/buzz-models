@@ -5,6 +5,7 @@ import argparse
 import logging
 import json
 import ast
+import comet_ml
 import torch
 
 from colorama import init, deinit, Back
@@ -12,7 +13,7 @@ from colorama import init, deinit, Back
 from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_datalist
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
-
+from utils.model_utils import train_model
 
 def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, data_check_reinit: bool):
     """ Function for getting soundlist from root folder """
@@ -72,9 +73,10 @@ def main():
     # get model
     model = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
     # train model
-    # model = train_model()
+    model = train_model(model, config['learning'], train_loader, val_loader)
 
     if os.name == 'nt':
         deinit()      # colorama resotore
+
 if __name__ == "__main__":
     main()

@@ -7,15 +7,17 @@ from math import sqrt
 from torch.utils.data import Dataset
 from scipy.fftpack import fft, fftfreq
 from scipy import signal, fftpack
+from sklearn.preprocessing import MinMaxScaler
 
 from utils.dataset.sound import Sound
 
 class PeriodogramDataset(Dataset, Sound):
     """ Periodogram dataset """
-    def __init__(self, filenames, hives, scale_db=False, slice_freq=None):
+    def __init__(self, filenames, hives, scale_db=False, scale=False, slice_freq=None):
         Sound.__init__(self, filenames, hives)
         self.slice_freq = slice_freq
-        self.scale_db = scale_db
+        self.scale = scale          # should scale data to be within 0 and 1
+        self.scale_db = scale_db    # should scale data to log amplitude
 
     def __getitem__(self, idx):
         """ Method for pytorch dataloader """
@@ -36,6 +38,9 @@ class PeriodogramDataset(Dataset, Sound):
         if self.slice_freq:
             periodogram = periodogram[self.slice_freq[0]:self.slice_freq[1]]
             frequencies = frequencies[self.slice_freq[0]:self.slice_freq[1]]
+
+        if self.scale:
+            periodogram = MinMaxScaler().fit_transform(periodogram.reshape(-1, 1)).squeeze()
 
         periodogram = periodogram.astype(np.float32)
         return (periodogram, frequencies), labels

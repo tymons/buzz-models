@@ -33,8 +33,9 @@ class SoundFeatureFactory():
         start_freq = periodogram_params.get('slice_frequency_start', 0)
         stop_freq = periodogram_params.get('slice_frequency_stop', 2048)
         db_scale = periodogram_params.get('scale_db', False)
+        should_scale = periodogram_params.get('scale', True)
 
-        return PeriodogramDataset(sound_filenames, labels, slice_freq=(start_freq, stop_freq))
+        return PeriodogramDataset(sound_filenames, labels, scale_db=db_scale, scale=should_scale, slice_freq=(start_freq, stop_freq))
 
     def _get_mfcc_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting mfcc from sound """

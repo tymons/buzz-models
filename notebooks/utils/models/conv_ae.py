@@ -66,7 +66,6 @@ class ConvolutionalAE(nn.Module):
         return x
 
 
-
 class ConvolutionalEncoder(nn.Module):
     """ Class for conv encoder without last latent layer as this class should be used in both vae and ae """
     def __init__(self, conv_features_sizes, linear_layer_sizes):

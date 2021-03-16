@@ -12,8 +12,9 @@
         },
         "periodogram": {
             "slice_frequency_start": 0,
-            "slice_frequency_stop": 8000,
-            "scale_db": false
+            "slice_frequency_stop": 2048,
+            "scale_db": false,
+            "scale": true
         },
         "mfcc": {
             "nfft": 4096,
@@ -33,9 +34,9 @@
     "model_architecture": {
         "fully_connected": {
             "number_of_layers": 3,
-            "encoder_layer_sizes": [512, 256, 32],
-            "latent_size": 2,
-            "decoder_layer_sizes": [32, 256, 512]
+            "encoder_layer_sizes": [1024, 256, 32],
+            "latent_size": 16,
+            "decoder_layer_sizes": [32, 256, 1024]
         },
 
         "convolutional": {
@@ -51,8 +52,12 @@
         }
     },
     "learning": {
-        "batch_size": 64,
-        "learning_rate": 1e-8,
-        "weight_decay": 1e-2
+        "batch_size": 32,
+        "learning_rate": 1e-3,
+        "weight_decay": 1e-6,
+        "epochs": 5,
+        "patience": 5,
+        "batch_normalize": false,
+        "batch_standarize": false
     }
 }
