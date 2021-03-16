@@ -1,13 +1,15 @@
 import torch
 import logging
 
+from torchsummary import summary
+from colorama import Back
+
 from utils.models.vae import VAE
 from utils.models.cvae import cVAE
 from utils.models.conv_vae import ConvolutionalVAE
 from utils.models.conv_cvae import ConvolutionalCVAE
-
-from torchsummary import summary
-from colorama import Back
+from utils.models.ae import Autoencoder
+from utils.models.conv_ae import ConvolutionalAE
 
 
 def model_check(model, input_shape):
@@ -70,13 +72,27 @@ class HiveModelFactory():
         return model_check(ConvolutionalCVAE(encoder_conv_sizes, encoder_mlp_sizes, decoder_conv_sizes, decoder_mlp_sizes, \
                                     latent_size, input_shape), [validate_input_shape, validate_input_shape])
     
-    def _get_ae_model(config, input_size):
-        # TODO: implement
-        pass
+    def _get_ae_model(config, input_shape):
+        """ Function for building vanilla autoencoder """
+        fc_config = config.get('fully_connected', {})
+        encoder_layer_sizes = fc_config.get('encoder_layer_sizes', [256, 32, 16])
+        decoder_layer_sizes = fc_config.get('decoder_layer_sizes', [16, 32, 256])
+        latent_size = fc_config.get('latent_size', 2)
+        
+        return model_check(Autoencoder(encoder_layer_sizes, latent_size, decoder_layer_sizes, input_shape[0]), (1,) + input_shape)
 
-    def _get_conv_ae_model(config, input_size):
-        # TODO: implement
-        pass
+    def _get_conv_ae_model(config, input_shape):
+        """ Function for building convolutional autoencoder """
+        conv_config = config.get('convolutional', {})
+        encoder_conv_sizes = conv_config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_mlp_sizes = conv_config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
+        decoder_conv_sizes = conv_config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_mlp_sizes = conv_config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
+        latent_size = conv_config.get('latent_size', 16)
+
+        return model_check(ConvolutionalAE(encoder_conv_sizes, encoder_mlp_sizes, decoder_conv_sizes, decoder_mlp_sizes, \
+                        latent_size, input_shape), (1,) + input_shape)
+        
     
     @classmethod
     def build_model(cls, model_type, config, input_shape):

@@ -19,15 +19,26 @@ class ConvolutionalCVAE(nn.Module):
         assert type(decoder_mlp_sizes) == list
 
         self.latent_size = latent_size
-        self.s_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
-        self.z_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, latent_size)
+        self.s_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes)
+        self.z_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes)
         self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, 2 * latent_size, input_size[0]//input_size[1])
 
+        self.s_linear_means = nn.Linear(encoder_mlp_sizes[-1], latent_size)
+        self.s_linear_log_var = nn.Linear(encoder_mlp_sizes[-1], latent_size)
+
+        self.z_linear_means = nn.Linear(encoder_mlp_sizes[-1], latent_size)
+        self.z_linear_log_var = nn.Linear(encoder_mlp_sizes[-1], latent_size)
+
     def forward(self, target, background):
-        tg_s_mean, tg_s_log_var = self.s_encoder(target)
-        tg_z_mean, tg_z_log_var = self.z_encoder(target)
-        bg_z_mean, bg_z_log_var = self.z_encoder(background)    
-    
+        target_s = self.s_encoder(target)
+        tg_s_mean, tg_s_log_var = self.s_linear_means(target_s), self.s_linear_log_var(target_s)
+
+        target_z = self.z_encoder(target)
+        tg_z_mean, tg_z_log_var = self.z_linear_means(target_z), self.z_linear_log_var(target_z)
+
+        background_z = self.z_encoder(background)
+        bg_z_mean, bg_z_log_var = self.z_linear_means(background_z), self.z_linear_log_var(background_z)
+            
         tg_s = reparameterize(tg_s_mean, tg_s_log_var)
         tg_z = reparameterize(tg_z_mean, tg_z_log_var)
         bg_z = reparameterize(bg_z_mean, bg_z_log_var)

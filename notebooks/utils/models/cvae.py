@@ -1,10 +1,12 @@
 import torch 
-import utils.models.vae as v 
 
 from torch import nn
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from tqdm import tqdm
+
 from utils.data_utils import batch_normalize, batch_standarize
+from utils.models.ae import Decoder, Encoder
+from utils.models.vae import reparameterize
 
 from comet_ml import Experiment
 
@@ -153,18 +155,29 @@ class cVAE(nn.Module):
         assert type(input_size) == int
 
         self.latent_size = latent_size
-        self.s_encoder = v.Encoder(encoder_layer_sizes, latent_size, input_size)
-        self.z_encoder = v.Encoder(encoder_layer_sizes, latent_size, input_size)
-        self.decoder = v.Decoder(decoder_layer_sizes, 2 * latent_size, input_size)
+        self.s_encoder = Encoder(encoder_layer_sizes, input_size)
+        self.z_encoder = Encoder(encoder_layer_sizes, input_size)
+        self.decoder = Decoder(decoder_layer_sizes, 2 * latent_size, input_size)
+
+        self.s_linear_means = nn.Linear(encoder_layer_sizes[-1], latent_size)
+        self.s_linear_log_var = nn.Linear(encoder_layer_sizes[-1], latent_size)
+
+        self.z_linear_means = nn.Linear(encoder_layer_sizes[-1], latent_size)
+        self.z_linear_log_var = nn.Linear(encoder_layer_sizes[-1], latent_size)
 
     def forward(self, target, background):
-        tg_s_mean, tg_s_log_var = self.s_encoder(target)
-        tg_z_mean, tg_z_log_var = self.z_encoder(target)
-        bg_z_mean, bg_z_log_var = self.z_encoder(background)    
-    
-        tg_s = v.reparameterize(tg_s_mean, tg_s_log_var)
-        tg_z = v.reparameterize(tg_z_mean, tg_z_log_var)
-        bg_z = v.reparameterize(bg_z_mean, bg_z_log_var)
+        target_s = self.s_encoder(target)
+        tg_s_mean, tg_s_log_var = self.s_linear_means(target_s), self.s_linear_log_var(target_s)
+        
+        target_z = self.z_encoder(target)
+        tg_z_mean, tg_z_log_var = self.z_linear_means(target_z), self.z_linear_log_var(target_z)
+
+        backgroud_z = self.z_encoder(background)
+        bg_z_mean, bg_z_log_var = self.z_linear_means(backgroud_z), self.z_linear_log_var(backgroud_z)
+
+        tg_s = reparameterize(tg_s_mean, tg_s_log_var)
+        tg_z = reparameterize(tg_z_mean, tg_z_log_var)
+        bg_z = reparameterize(bg_z_mean, bg_z_log_var)
         
         tg_output = self.decoder(torch.cat((tg_z, tg_s), axis=2))
         bg_output = self.decoder(torch.cat((bg_z, torch.zeros_like(tg_s)), axis=2))

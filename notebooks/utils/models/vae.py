@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from torch import nn
 from utils.data_utils import batch_normalize, batch_standarize
+from utils.models.ae import Encoder, Decoder
+
 
 def vae_loss(recon_x, x, mean, log_var):
     """
@@ -41,73 +43,21 @@ class VAE(nn.Module):
         assert type(input_size) == int
 
         self.latent_size = latent_size
-        self.encoder = Encoder(encoder_layer_sizes, latent_size, input_size)
+        self.encoder = Encoder(encoder_layer_sizes, input_size)
         self.decoder = Decoder(decoder_layer_sizes, latent_size, input_size)
+        
+        self.linear_means = nn.Linear(encoder_layer_sizes[-1], latent_size)
+        self.linear_log_var = nn.Linear(encoder_layer_sizes[-1], latent_size)
 
     def forward(self, x):
-        means, log_var = self.encoder(x)
+        x = self.encoder(x)
+        means = self.linear_means(x)
+        log_var =  self.linear_log_var(x)
         z = reparameterize(means, log_var)
         recon_x = self.decoder(z)
 
         return recon_x, means, log_var
-
-    def inference(self, z):
-        return self.decoder(z)
     
-class Encoder(nn.Module):
-    """ Class for encoder """
-    def __init__(self, layer_sizes, latent_size, input_size):
-
-        super().__init__()
-
-        self.MLP = nn.Sequential()
-
-        # input layer
-        self.MLP.add_module(name=f"L{0}", module=nn.Linear(input_size, layer_sizes[0]))
-        self.MLP.add_module(name=f"A{0}", module=nn.ReLU())
-        self.MLP.add_module(name=f"D{0}", module=nn.Dropout(p=0.1))
-        # following layers
-        for i, (in_size, out_size) in enumerate(zip(layer_sizes[:-1], layer_sizes[1:]), 1):
-            self.MLP.add_module(name=f"L{i}", module=nn.Linear(in_size, out_size))
-            self.MLP.add_module(name=f"A{i}", module=nn.ReLU())
-            self.MLP.add_module(name=f"D{i}", module=nn.Dropout(p=0.1))
-
-        self.linear_means = nn.Linear(layer_sizes[-1], latent_size)
-        self.linear_log_var = nn.Linear(layer_sizes[-1], latent_size)
-
-    def forward(self, x):
-        x = self.MLP(x)
-    
-        means = self.linear_means(x)
-        log_vars = self.linear_log_var(x)
-
-        return means, log_vars
-
-
-class Decoder(nn.Module):
-    """ Class for decoder """
-    def __init__(self, layer_sizes, latent_size, output_size):
-
-        super().__init__()
-
-        self.MLP = nn.Sequential()
-
-        input_size = latent_size
-
-        for i, (in_size, out_size) in enumerate(zip([input_size]+layer_sizes[:-1], layer_sizes)):
-            self.MLP.add_module(name=f"L{i}", module=nn.Linear(in_size, out_size))
-            self.MLP.add_module(name=f"A{i}", module=nn.ReLU())
-            self.MLP.add_module(name=f"D{i}", module=nn.Dropout(p=0.1))
-
-        # output layer
-        self.MLP.add_module(name=f"L{len(layer_sizes)}", module=nn.Linear(layer_sizes[-1], output_size))
-        self.MLP.add_module(name="sigmoid", module=nn.Sigmoid())
-
-
-    def forward(self, z):
-        x = self.MLP(z)
-        return x
-
 
 def train_vae_model(model, learning_rate, weight_decay, num_epochs, patience, 
                     dataloader_train, dataloader_val, scale=False, checkpoint_name='checkpoint_vae.pth'):
