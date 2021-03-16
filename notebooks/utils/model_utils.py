@@ -1,3 +1,5 @@
+import os
+
 from comet_ml import Experiment
 
 import torch
@@ -6,7 +8,6 @@ import numpy as np
 
 from torch.utils import data as tdata
 from torch import nn
-
 from utils.data_utils import batch_normalize, batch_standarize
 
 def train_model(model, learning_params, train_loader, val_loader):
@@ -14,8 +15,8 @@ def train_model(model, learning_params, train_loader, val_loader):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'model training performed on {device}')
 
-    # experiment = Experiment(api_key="hJ6EGs9VT1S21ivft1Gt1XlzC", project_name="smartula-vanilla-autoencoder", auto_metric_logging=False)
-    # experiment.log_parameters(learning_params)
+    experiment = Experiment(project_name="smartula-vanilla-autoencoder", auto_metric_logging=False)
+    experiment.log_parameters(learning_params)
 
     model_name = type(model).__name__
     # prepare loss function
@@ -40,7 +41,7 @@ def train_model(model, learning_params, train_loader, val_loader):
     # best validation score
     best_val_loss = -1
     # model checkpoint filename
-    checkpoint_filename = 'checkpoint.pth'
+    checkpoint_filename = f'output{os.sep}models{os.sep}{experiment.get_name()}-checkpoint.pth'
     # early stopping epoch
     win_epoch = 0
 
@@ -76,7 +77,7 @@ def train_model(model, learning_params, train_loader, val_loader):
             train_loss.append(loss.item())
             # update metric to comet
             step = step + 1
-            # experiment.log_metric("batch_train_loss", loss.item(), step=step)
+            experiment.log_metric("batch_train_loss", loss.item(), step=step)
 
         ###################
         # val the model   #
@@ -101,7 +102,7 @@ def train_model(model, learning_params, train_loader, val_loader):
             val_loss.append(vloss.item())
             # update metric to comet
             step = step + 1
-            # experiment.log_metric("batch_val_loss", vloss.item(), step=step)
+            experiment.log_metric("batch_val_loss", vloss.item(), step=step)
 
         # print training/validation statistics
         # calculate average loss over an epoch
@@ -110,7 +111,7 @@ def train_model(model, learning_params, train_loader, val_loader):
 
         # print avg training statistics
         print(f'Epoch [{epoch}/{learning_params["epochs"]}], LOSS: {train_loss:.5f}, VAL_LOSS: {val_loss:.5f}', end='')
-        # experiment.log_metric("train_loss", train_loss, step=epoch)
+        experiment.log_metric("train_loss", train_loss, step=epoch)
 
         if val_loss < best_val_loss or best_val_loss == -1:
             # new checkpoint

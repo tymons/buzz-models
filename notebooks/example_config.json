@@ -55,7 +55,7 @@
         "batch_size": 32,
         "learning_rate": 1e-3,
         "weight_decay": 1e-6,
-        "epochs": 5,
+        "epochs": 30,
         "patience": 5,
         "batch_normalize": false,
         "batch_standarize": false
