@@ -9,11 +9,13 @@ from utils.models.conv_cvae import ConvolutionalCVAE
 from torchsummary import summary
 from colorama import Back
 
+
 def model_check(model, input_shape):
     """ Function for model check """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     try:
-        logging.debug(summary(model.to(device), input_shape))
+        summary(model.to(device), input_shape)
+        logging.debug(f'model check success! {model}')
     except Exception as e:
         logging.error(Back.RED + 'model self-check failure: ' + str(e))
         raise Exception('model self-check failure')
