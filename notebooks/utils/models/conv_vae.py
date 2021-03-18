@@ -28,10 +28,10 @@ class ConvolutionalVAE(nn.Module):
         self.latent_size = latent_size
 
     def forward(self, x):
-        x = self.encoder(x)
-        means = self.linear_means(x)
-        log_var = self.linear_log_var(x)
+        y = self.encoder(x)
+        means = self.linear_means(y)
+        log_var = self.linear_log_var(y)
         latent = reparameterize(means, log_var)
         recon_x = self.decoder(latent)
 
-        return recon_x, means, log_var
+        return {'target': recon_x, 'mean': means, 'logvar': log_var}

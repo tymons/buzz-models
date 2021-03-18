@@ -38,7 +38,7 @@ def _kld_loss(mean, log_var):
     """ KLD loss for normal distribution"""
     return torch.mean(-0.5 * torch.sum(1 + log_var - mean ** 2 - log_var.exp())).item()
 
-def cvae_loss(cvae_output, input_target, input_background, kld_weight, discriminator=None, discriminator_aplha=None):
+def cvae_loss(output, input_target, input_background, kld_weight, discriminator=None, discriminator_aplha=None):
     """
     This function will add reconstruction loss along with KLD
     :param cvae_output: cvae  model output
@@ -182,7 +182,7 @@ class cVAE(nn.Module):
         tg_output = self.decoder(torch.cat((tg_z, tg_s), axis=2))
         bg_output = self.decoder(torch.cat((bg_z, torch.zeros_like(tg_s)), axis=2))
 
-        return {'target': tg_output,
+        return {'output': tg_output,
                 'tg_qs_mean': tg_s_mean,
                 'tg_qs_log_var': tg_s_log_var,
                 'tg_qz_mean': tg_z_mean,

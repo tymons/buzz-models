@@ -71,12 +71,13 @@ def main():
     # get train and val loaders
     train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, sound_filenames, labels, config['learning'].get('batch_size', 32), config['features'])
     # get model
-    model = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
-    # train model
-    model = train_model(model, config['learning'], train_loader, val_loader)
+    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
+    # train single model
+    model = train_model(model, config['learning'], train_loader, val_loader,
+                        comet_model_params=model_params, comet_tag_list=list(labels).append(args.feature))
 
     if os.name == 'nt':
-        deinit()      # colorama resotore
+        deinit()      # colorama restore
 
 if __name__ == "__main__":
     main()

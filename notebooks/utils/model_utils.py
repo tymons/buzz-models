@@ -1,4 +1,6 @@
 import os
+import time
+import logging
 
 from comet_ml import Experiment
 
@@ -9,25 +11,33 @@ import numpy as np
 from torch.utils import data as tdata
 from torch import nn
 from utils.data_utils import batch_normalize, batch_standarize
+from utils.models.vae import vae_loss
 
-def train_model(model, learning_params, train_loader, val_loader):
+
+def train_model(model, learning_params, train_loader, val_loader, comet_model_params=None, comet_tag_list=None):
     """ Function for training model """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f'model training performed on {device}')
+    model_name = type(model).__name__.lower()
+    logging.info(f'{model_name} model training performed on {device}')
 
-    experiment = Experiment(project_name="smartula-vanilla-autoencoder", auto_metric_logging=False)
-    experiment.log_parameters(learning_params)
-
-    model_name = type(model).__name__
     # prepare loss function
     loss_fun = {
-        'Autoencoder': nn.MSELoss(),
-        'ConvolutionalAE': nn.MSELoss(),
-        'ConvolutionalCVAE': nn.MSELoss(),
-        'ConvolutionalVAE': nn.MSELoss(),
-        'cVAE': nn.MSELoss(),
-        'VAE': nn.MSELoss()
-    }.get(model_name, nn.MSELoss())
+        'autoencoder': nn.MSELoss(),
+        'convolutionalae': nn.MSELoss(),
+        'vae': vae_loss,
+        'convolutionalvae': vae_loss,
+        'cvae': nn.MSELoss(),
+        'convolutionalcvae': nn.MSELoss(),
+    }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
+
+    # setup comet ml experiment
+    experiment = Experiment(project_name=f"{model_name.lower()}-bee-sound", auto_metric_logging=False)
+    experiment.log_parameters(learning_params)
+    if comet_model_params:
+        experiment.log_parameters(comet_model_params)
+    experiment.set_name(f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}")
+    if comet_tag_list:
+        experiment.add_tags(comet_tag_list)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
@@ -66,9 +76,9 @@ def train_model(model, learning_params, train_loader, val_loader):
             # clear the gradients of all optimized variables
             optimizer.zero_grad()
             # forward pass
-            outputs = model(input_data)
+            output_dict = model(input_data)
             # calculate the loss
-            loss = loss_fun(outputs, input_data)
+            loss = loss_fun(input_data, **output_dict)
             # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
             # perform a single optimization step (parameter update)
@@ -95,9 +105,9 @@ def train_model(model, learning_params, train_loader, val_loader):
             # transfer data to device
             input_data_val = val_data.to(device)
             # forward pass
-            val_outputs = model(input_data_val)
+            val_output_dict = model(input_data_val)
             # calculate the loss
-            vloss = loss_fun(val_outputs, input_data_val)
+            vloss = loss_fun(input_data_val, **val_output_dict)
             # update running val loss
             val_loss.append(vloss.item())
             # update metric to comet
@@ -110,19 +120,20 @@ def train_model(model, learning_params, train_loader, val_loader):
         val_loss = np.average(val_loss)
 
         # print avg training statistics
-        print(f'Epoch [{epoch}/{learning_params["epochs"]}], LOSS: {train_loss:.5f}, VAL_LOSS: {val_loss:.5f}', end='')
+        logging.info(f'Epoch [{epoch}/{learning_params["epochs"]}], LOSS: {train_loss:.6f}, VAL_LOSS: {val_loss:.6f}')
         experiment.log_metric("train_loss", train_loss, step=epoch)
+        experiment.log_metric("val_loss", val_loss, step=epoch)
 
         if val_loss < best_val_loss or best_val_loss == -1:
             # new checkpoint
-            print("-checkpoint!")
+            logging.info("checkpoint!")
             best_val_loss = val_loss
             patience_counter = 0
             torch.save(model.state_dict(), checkpoint_filename)
             win_epoch = epoch
         elif patience_counter >= learning_params['patience']:
-            print("-early stopping.")
-            print(f"=> loading checkpoint {checkpoint_filename}")
+            logging.info("early stopping.")
+            logging.info(f"=> loading checkpoint {checkpoint_filename}")
             model.load_state_dict(torch.load(checkpoint_filename))
             break
         else:
@@ -132,11 +143,3 @@ def train_model(model, learning_params, train_loader, val_loader):
         # clear batch losses
         train_loss = []
         val_loss = []
-    
-    # fig = plt.figure(figsize=(10, 5))
-    # plt.plot(np.arange(1, epoch + 1), avg_train_loss, 'r', label="train loss")
-    # plt.plot(np.arange(1, epoch + 1), avg_val_loss, 'b', label="validation loss")
-    # plt.axvline(win_epoch, linestyle='--', color='g', label='Early Stopping Checkpoint')
-    # plt.legend(loc='best')
-    # plt.grid(True)
-    # plt.savefig(f'{model_name}-{time.strftime("%Y%m%d-%H%M%S")}')

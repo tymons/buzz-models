@@ -33,17 +33,12 @@
     },
     "model_architecture": {
         "fully_connected": {
-            "number_of_layers": 3,
             "encoder_layer_sizes": [1024, 256, 32],
             "latent_size": 16,
             "decoder_layer_sizes": [32, 256, 1024]
         },
 
         "convolutional": {
-            "number_of_layers": {
-                "conv": 4,
-                "mlp": 3
-            },
             "encoder_no_feature_maps": [128, 64, 32, 16],
             "encoder_mlp_layer_sizes": [1024, 512, 128],
             "decoder_no_feature_maps": [16, 32, 64, 128],
@@ -52,11 +47,11 @@
         }
     },
     "learning": {
-        "batch_size": 32,
+        "batch_size": 4,
         "learning_rate": 1e-3,
         "weight_decay": 1e-6,
-        "epochs": 30,
-        "patience": 5,
+        "epochs": 100,
+        "patience": 20,
         "batch_normalize": false,
         "batch_standarize": false
     }

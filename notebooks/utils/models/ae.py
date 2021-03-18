@@ -16,9 +16,9 @@ class Autoencoder(nn.Module):
         self.decoder = Decoder(decoder_layer_sizes, latent_size, input_size)
 
     def forward(self, x):
-        x = self.encoder(x)
-        x = self.decoder(x)
-        return x
+        y = self.encoder(x)
+        y = self.decoder(y)
+        return {'target': y}
 
 class Encoder(nn.Module):
     """ Class for encoder """

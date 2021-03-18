@@ -61,9 +61,9 @@ class ConvolutionalAE(nn.Module):
         self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent_size, (input_size[0]//input_size[1]))
 
     def forward(self, x):
-        x = self.encoder(x)
-        x = self.decoder(x)
-        return x
+        y = self.encoder(x)
+        y = self.decoder(y)
+        return {'target': y}
 
 
 class ConvolutionalEncoder(nn.Module):
