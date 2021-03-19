@@ -125,3 +125,4 @@ dmypy.json
 
 measurements/
 *.npy
+.comet.config
