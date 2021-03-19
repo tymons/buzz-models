@@ -1,5 +1,11 @@
 from torch import nn
+import torch.nn.functional as F
 
+
+def ae_loss_fun(data_input, model_output_dict):
+    """ Function for calculating loss for vanilla autoencoders """
+    MSE = F.mse_loss(data_input, model_output_dict['target'], reduction='sum')
+    return MSE
 
 class Autoencoder(nn.Module):
     """ Vanilla autoencoder """

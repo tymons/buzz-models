@@ -7,18 +7,18 @@ from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.ae import Encoder, Decoder
 
 
-def vae_loss(data_input, target, mean, logvar):
+def vae_loss(data_input, model_output_dict):
     """
     This function will add the reconstruction loss (MSE loss) and the 
     KL-Divergence.
     KL-Divergence = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    :param BCE: binary cross entropy loss
-    :param mu: the mean from the latent vector
-    :param logvar: log variance from the latent vector
+    :param data_input: original input data
+    :param model_output_dict: dictionary with target, mean and log_var (output from forward method)
+    :return 
     """
-    BCE = F.mse_loss(data_input, target, reduction='sum')
-    KLD = _kld_loss(mean, logvar)
-    return (BCE + KLD)
+    MSE = F.mse_loss(data_input, model_output_dict['target'], reduction='sum')
+    KLD = _kld_loss(model_output_dict['mean'], model_output_dict['logvar'])
+    return (MSE + KLD)
 
 def _kld_loss(mean, log_var):
     """ KLD loss for normal distribution"""

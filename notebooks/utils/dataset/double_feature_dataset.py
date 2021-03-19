@@ -17,9 +17,9 @@ class DoubleFeatureDataset(Dataset):
         assert len(target) == len(background)
 
     def __getitem__(self, idx):
-        target_sample = self.target.__getitem__(idx)
-        background_sample = self.background.__getitem__(idx)
-        return (target_sample, background_sample)
+        target_sample, label = self.target.__getitem__(idx)
+        background_sample, _ = self.background.__getitem__(idx)
+        return (target_sample, background_sample), label
 
     def __len__(self):
         return len(self.target) # as we assert len of target and backround at constructor

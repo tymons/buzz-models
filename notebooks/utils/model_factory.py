@@ -10,7 +10,7 @@ from utils.models.conv_vae import ConvolutionalVAE
 from utils.models.conv_cvae import ConvolutionalCVAE
 from utils.models.ae import Autoencoder
 from utils.models.conv_ae import ConvolutionalAE
-from utils.models.discirminator import Discriminator
+from utils.models.discriminator import Discriminator
 
 def model_check(model, input_shape):
     """ Function for model check """
@@ -128,7 +128,7 @@ class HiveModelFactory():
         layer_sizes = config.get('layers', [32, 4])
 
         config_used = { 'discriminator_layers': layer_sizes }
-        return model_check(Discriminator(layer_sizes, input_shape))
+        return model_check(Discriminator(layer_sizes, input_shape), (1,) + input_shape), config_used
 
     @classmethod
     def build_model(cls, model_type, config, input_shape):

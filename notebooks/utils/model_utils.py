@@ -5,14 +5,15 @@ import logging
 from comet_ml import Experiment
 
 import torch
-import matplotlib.pyplot as plt
 import numpy as np
-
 from torch.utils import data as tdata
 from torch import nn
+
 from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.vae import vae_loss
-from utils.models.discriminaotr import discriminator_loss
+from utils.models.discriminator import discriminator_loss
+from utils.models.ae import ae_loss_fun
+from utils.models.cvae import cvae_loss
 
 def permutate_latent(latents_batch, inplace=False):
     """ Function for element permutation along axis
@@ -38,7 +39,7 @@ def setup_comet_ml_experiment(project_name, experiment_name, parameters, tags):
     experiment = Experiment(project_name=project_name, auto_metric_logging=False)
     experiment.set_name(experiment_name)
     experiment.log_parameters(parameters)
-    experiment.add_tags(comet_tag_list)
+    experiment.add_tags(tags)
     return experiment
 
 
@@ -64,12 +65,12 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
 
     # prepare loss function
     loss_fun = {
-        'autoencoder': nn.MSELoss(),
-        'convolutionalae': nn.MSELoss(),
+        'autoencoder': ae_loss_fun,
+        'convolutionalae': ae_loss_fun,
         'vae': vae_loss,
         'convolutionalvae': vae_loss,
-        'cvae': nn.MSELoss(),
-        'convolutionalcvae': nn.MSELoss(),
+        'cvae': cvae_loss,
+        'convolutionalcvae': cvae_loss,
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
@@ -105,7 +106,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         # train the model #
         ###################
         model.train()
-        step = 0
+        step = 1
         for data, label in train_loader:
             # batch calculation
             if learning_params['batch_standarize']:
@@ -119,6 +120,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             loss = loss_fun(input_data, output_dict)
             loss.backward()
             optimizer.step()
+            # log comet ml metric and watch avg losses
+            experiment.log_metric("batch_train_loss", loss.item(), step=step)
             train_loss.append(loss.item())
 
             if discriminator:
@@ -131,16 +134,16 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                 dloss = discriminator_loss(q_score, q_bar_score)
                 dloss.backward()
                 optimizer_discriminator.step()
+                # log comet ml metric
+                experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
 
             step = step + 1
-            experiment.log_metric("batch_train_loss", loss.item(), step=step)
-            experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
 
         ###################
         # val the model   #
         ###################
         model.eval()
-        step = 0
+        step = 1
         for val_data, label in val_loader:
             if learning_params['batch_standarize']:
                 val_data = batch_standarize(val_data)
@@ -151,8 +154,9 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             val_output_dict = model(input_data_val)
             vloss = loss_fun(input_data_val, **val_output_dict)
             val_loss.append(vloss.item())
-            step = step + 1
+            # log comet ml metric
             experiment.log_metric("batch_val_loss", vloss.item(), step=step)
+            step = step + 1
 
         # print training/validation statistics
         # calculate average loss over an epoch
@@ -177,7 +181,6 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             model.load_state_dict(torch.load(checkpoint_filename))
             break
         else:
-            print(".")
             patience_counter = patience_counter + 1
 
         # clear batch losses
