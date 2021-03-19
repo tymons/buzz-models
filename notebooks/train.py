@@ -57,7 +57,7 @@ def main():
     # optional arguments
     parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
     parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
-    parser.add_argument("--discriminator", type=bool, default=True, help="should use discirminator in contrastive learning")
+    parser.add_argument("--discriminator", type=bool, default=False, help="should use discirminator in contrastive learning")
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
@@ -94,14 +94,15 @@ def main():
                                                         background_filenames=background_filenames, background_labels=background_labels)
     # get model
     model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], train_loader.dataset[0][0][0].shape)
-    discirminator = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
-                                                    config['model_architecture'][args.model_type]['latent_size'] * 2) if args.discriminator else None
+    discirminator, disc_params = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
+                                                    config['model_architecture'][args.model_type]['latent_size'] * 2) if args.discriminator else (None, {})
     discirminator_alpha = config['learning'].get('discriminator_alpha', 0.1) if args.discriminator else None
-
+    
     # train model
-    model = train_model(model, config['learning'], train_loader, val_loader, 
-                        discriminator=discirminator, discriminator_alpha=discirminator_alpha,
-                        comet_model_params=model_params, comet_tag_list=labels.append(args.feature))
+    model_params.update(disc_params)
+    labels.append(args.feature)
+    model = train_model(model, config['learning'], train_loader, val_loader, discriminator=discirminator,
+                         comet_params=model_params, comet_tags=labels)
 
     if os.name == 'nt':
         deinit()      # colorama restore
