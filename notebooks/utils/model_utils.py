@@ -12,6 +12,25 @@ from torch.utils import data as tdata
 from torch import nn
 from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.vae import vae_loss
+from utils.models.discriminaotr import discriminator_loss
+
+def permutate_latent(latents_batch, inplace=False):
+    """ Function for element permutation along axis
+    
+    Parameters:
+        latent_batch (torch.tensor): input matrix to be permutated
+        inplace (bool): modify original tensor or not
+    Returns
+    """
+    latents_batch = latents_batch.squeeze()
+    
+    data = latents_batch.detach().clone() if inplace == False else latents_batch
+
+    for column_idx in range(latents_batch.shape[-1]):
+        rand_indicies = torch.randperm(latents_batch[:, column_idx].shape[0])
+        latents_batch[:, column_idx] = latents_batch[:, column_idx][rand_indicies]
+
+    return data
 
 
 def setup_comet_ml_experiment(project_name, experiment_name, parameters, tags):
@@ -22,13 +41,26 @@ def setup_comet_ml_experiment(project_name, experiment_name, parameters, tags):
     experiment.add_tags(comet_tag_list)
     return experiment
 
-def train_model(model, learning_params, train_loader, val_loader, 
-                    discriminator=None, discriminator_alpha=None,
-                    comet_model_params={}, comet_tag_list=[]):
-    """ Function for training model """
+
+def train_model(model, learning_params, train_loader, val_loader, discriminator=None,
+                    comet_params={}, comet_tags=[]):
+    """ Main function for training model 
+    
+    Parameters:
+        model (torch.nn.Module): model to be trained
+        learning_prams (dict): learning dictionary from json config
+        train_loader (DataLoader): data loader for train data
+        val_loader (DataLoader): data loader for validation data
+        discriminator (nn.Module): discriminator for contrastive learning
+        comet_params (dict): parameters which will be uploaded to comet ml
+        comet_tags (list): list of tags which should be uploaded to comet ml experiment
+
+    Returns
+        model (torch.nn.Module): trained model
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_name = type(model).__name__.lower()
-    logging.info(f'{model_name} model training performed on {device}')
+    logging.info(f'{model_name} model training starting on {device} device')
 
     # prepare loss function
     loss_fun = {
@@ -41,13 +73,14 @@ def train_model(model, learning_params, train_loader, val_loader,
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
-    comet_tag_list = comet_tag_list.append('discriminator') if discriminator else comet_tag_list
+    comet_tags = comet_tags.append('discriminator') if discriminator else comet_tags
     experiment = setup_comet_ml_experiment(f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
-                                            parameters=dict(learning_params, **comet_model_params), tags=comet_tag_list)
+                                            parameters=dict(learning_params, **comet_params), tags=comet_tags)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
-    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
+    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=learning_params['discriminator']['learning_rate'],
+                                                 weight_decay=learning_params['discriminator']['weight_decay']) if discriminator else None
     # monitor training loss per batch
     train_loss = []
     # monitor validation loss per batch
@@ -63,9 +96,9 @@ def train_model(model, learning_params, train_loader, val_loader,
 
     # pass model to gpu if is available
     model.to(device)
-
     if discriminator is not None:
         discriminator.to(device)
+        discriminator.train()
 
     for epoch in range(1, learning_params['epochs'] + 1):
         ###################
@@ -74,29 +107,34 @@ def train_model(model, learning_params, train_loader, val_loader,
         model.train()
         step = 0
         for data, label in train_loader:
-            # transfer data to device and normalize per batch
+            # batch calculation
             if learning_params['batch_standarize']:
                 data = batch_standarize(data)
-
             if learning_params['batch_normalize']:
                 data = batch_normalize(data)
-
             input_data = data.to(device)
-            # clear the gradients of all optimized variables
+
             optimizer.zero_grad()
-            # forward pass
             output_dict = model(input_data)
-            # calculate the loss
             loss = loss_fun(input_data, output_dict)
-            # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
-            # perform a single optimization step (parameter update)
             optimizer.step()
-            # update running training loss
             train_loss.append(loss.item())
-            # update metric to comet
+
+            if discriminator:
+                # if we have contrastive learning which supports discriminator
+                q = torch.cat((output_dict["latent_qs_target"].detach(), output_dict["latent_qz_target"].detach()), axis=-1).to(device)
+                q_bar = permutate_latent(q)
+                q_bar = q_bar.to(device)
+                optimizer_discriminator.zero_grad()
+                q_score, q_bar_score = discriminator(q, q_bar)
+                dloss = discriminator_loss(q_score, q_bar_score)
+                dloss.backward()
+                optimizer_discriminator.step()
+
             step = step + 1
             experiment.log_metric("batch_train_loss", loss.item(), step=step)
+            experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
 
         ###################
         # val the model   #
@@ -104,22 +142,15 @@ def train_model(model, learning_params, train_loader, val_loader,
         model.eval()
         step = 0
         for val_data, label in val_loader:
-            # transfer data to device and normalize per batch
             if learning_params['batch_standarize']:
                 val_data = batch_standarize(val_data)
-
             if learning_params['batch_normalize']:
                 val_data = batch_normalize(val_data)
-            
-            # transfer data to device
             input_data_val = val_data.to(device)
-            # forward pass
+            
             val_output_dict = model(input_data_val)
-            # calculate the loss
             vloss = loss_fun(input_data_val, **val_output_dict)
-            # update running val loss
             val_loss.append(vloss.item())
-            # update metric to comet
             step = step + 1
             experiment.log_metric("batch_val_loss", vloss.item(), step=step)
 

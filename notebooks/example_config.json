@@ -75,11 +75,15 @@
     "learning": {
         "batch_size": 4,
         "learning_rate": 1e-3,
-        "weight_decay": 1e-6,
+        "weight_decay": 1e-2,
         "epochs": 100,
         "patience": 20,
         "batch_normalize": false,
         "batch_standarize": false,
-        "discriminator_alpha": 0.1
+        "discriminator": {
+            "alpha": 0.1,
+            "learning_rate": 1e-3,
+            "weight_decay": 1e-2
+        }
     }
 }

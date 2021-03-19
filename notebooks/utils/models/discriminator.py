@@ -1,12 +1,20 @@
 from torch import nn
 
+
+def discriminator_loss(log_ratio_p, log_ratio_q):
+    """ Function for discriminaotr loss """
+    loss_p = nn.functional.binary_cross_entropy_with_logits(log_ratio_p, torch.ones_like(log_ratio_p), reduction='mean')
+    loss_q = nn.functional.binary_cross_entropy_with_logits(log_ratio_q, torch.zeros_like(log_ratio_q), reduction='mean')
+    return loss_p + loss_q
+
+
 class Discriminator(nn.Module):
     """ Dummy class which implements MLP as discriminator """
     def __init__(self, layers_sizes, input_size):
         """ Constructor for discriminator class """
         assert type(layers_sizes) == list
         assert type(input_size) == int
-        
+
         super(Discriminator, self).__init__()
 
         self.MLP = nn.Sequential()

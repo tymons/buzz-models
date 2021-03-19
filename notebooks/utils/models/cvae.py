@@ -10,24 +10,6 @@ from utils.models.vae import reparameterize
 
 from comet_ml import Experiment
 
-def permutate_latent(latents_batch, inplace=False):
-    """ Function for element permutation along specified axis
-    
-    Parameters:
-        latent_batch (torch.tensor): input matrix to be permutated
-        inplace (bool): modify original tensor or not
-    Returns
-    """
-    latents_batch = latents_batch.squeeze()
-    
-    data = latents_batch.detach().clone() if inplace == False else latents_batch
-
-    for column_idx in range(latents_batch.shape[-1]):
-        rand_indicies = torch.randperm(latents_batch[:, column_idx].shape[0])
-        latents_batch[:, column_idx] = latents_batch[:, column_idx][rand_indicies]
-
-    return data
-
 
 def discriminator_loss(log_ratio_p, log_ratio_q):
     loss_p = nn.functional.binary_cross_entropy_with_logits(log_ratio_p, torch.ones_like(log_ratio_p), reduction='mean')
