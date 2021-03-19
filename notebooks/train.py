@@ -16,7 +16,6 @@ from utils.model_factory import HiveModelFactory
 from utils.model_utils import train_model
 from utils.data_utils import filter_strlist
 
-
 def truncate_lists_to_smaller_size(arg1, arg2):
     if len(arg1) > len(arg2):
         arg1 = arg1[:len(arg2)]
@@ -58,6 +57,7 @@ def main():
     # optional arguments
     parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
     parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
+    parser.add_argument("--discriminator", type=bool, default=True, help="should use discirminator in contrastive learning")
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
@@ -92,11 +92,14 @@ def main():
     train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, target_filenames, target_labels, 
                                                         config['features'], config['learning'].get('batch_size', 32),
                                                         background_filenames=background_filenames, background_labels=background_labels)
-    # # # get model
-    # model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
-    # # # train single model
-    # model = train_model(model, config['learning'], train_loader, val_loader,
-    #                     comet_model_params=model_params, comet_tag_list=labels.append(args.feature))
+    # get models
+    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], train_loader.dataset[0][0][0].shape)
+    discirminator = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
+                                                    config['model_architecture'][args.model_type]['latent_size'] * 2) if args.discriminator else None
+    # train single model
+    model = train_model(model, config['learning'], train_loader, val_loader, 
+                        discriminator=discirminator, discriminator_alpha=config['learning']['discriminator_alpha'],
+                        comet_model_params=model_params, comet_tag_list=labels.append(args.feature))
 
     if os.name == 'nt':
         deinit()      # colorama restore

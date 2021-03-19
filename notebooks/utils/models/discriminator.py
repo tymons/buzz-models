@@ -4,6 +4,9 @@ class Discriminator(nn.Module):
     """ Dummy class which implements MLP as discriminator """
     def __init__(self, layers_sizes, input_size):
         """ Constructor for discriminator class """
+        assert type(layers_sizes) == list
+        assert type(input_size) == int
+        
         super(Discriminator, self).__init__()
 
         self.MLP = nn.Sequential()

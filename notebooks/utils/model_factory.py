@@ -10,7 +10,7 @@ from utils.models.conv_vae import ConvolutionalVAE
 from utils.models.conv_cvae import ConvolutionalCVAE
 from utils.models.ae import Autoencoder
 from utils.models.conv_ae import ConvolutionalAE
-
+from utils.models.discirminator import Discriminator
 
 def model_check(model, input_shape):
     """ Function for model check """
@@ -29,10 +29,9 @@ class HiveModelFactory():
     
     def _get_vae_model(config, input_shape):
         """ Function for building Variational Autoencoder """
-        fc_config = config.get('fully_connected', {})
-        encoder_layer_sizes = fc_config.get('encoder_layer_sizes', [256, 32, 16])
-        decoder_layer_sizes = fc_config.get('decoder_layer_sizes', [16, 32, 256])
-        latent_size = fc_config.get('latent_size', 2)
+        encoder_layer_sizes = config.get('encoder_layer_sizes', [256, 32, 16])
+        decoder_layer_sizes = config.get('decoder_layer_sizes', [16, 32, 256])
+        latent_size = config.get('latent_size', 2)
 
         config_used = {
             'encoder_mlp_layers': encoder_layer_sizes,
@@ -43,10 +42,9 @@ class HiveModelFactory():
 
     def _get_cvae_model(config, input_shape):
         """ Function for building Contrastive Variational Autoencoder """
-        fc_config = config.get('fully_connected', {})
-        encoder_layer_sizes = fc_config.get('encoder_layer_sizes', [256, 32, 16])
-        decoder_layer_sizes = fc_config.get('decoder_layer_sizes', [16, 32, 256])
-        latent_size = fc_config.get('latent_size', 2)
+        encoder_layer_sizes = config.get('encoder_layer_sizes', [256, 32, 16])
+        decoder_layer_sizes = config.get('decoder_layer_sizes', [16, 32, 256])
+        latent_size = config.get('latent_size', 2)
         
         config_used = {
             'encoder_mlp_layers': encoder_layer_sizes,
@@ -59,12 +57,11 @@ class HiveModelFactory():
 
     def _get_conv_vae_model(config, input_shape):
         """ Function for building Convolutional Variational Autoencoder """
-        conv_config = config.get('convolutional', {})
-        encoder_conv_sizes = conv_config.get('encoder_no_feature_maps', [128, 64, 32, 16])
-        encoder_mlp_sizes = conv_config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
-        decoder_conv_sizes = conv_config.get('decoder_no_feature_maps', [16, 32, 64, 128])
-        decoder_mlp_sizes = conv_config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
-        latent_size = conv_config.get('latent_size', 16)
+        encoder_conv_sizes = config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_mlp_sizes = config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
+        decoder_conv_sizes = config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_mlp_sizes = config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
+        latent_size = config.get('latent_size', 16)
         
         config_used = {
             'encoder_feature_map': encoder_conv_sizes,
@@ -78,12 +75,11 @@ class HiveModelFactory():
 
     def _get_conv_cvae_model(config, input_shape):
         """ Function for building Convolutional Contrastive Variational Autoencoder """
-        conv_config = config.get('convolutional', {})
-        encoder_conv_sizes = conv_config.get('encoder_no_feature_maps', [128, 64, 32, 16])
-        encoder_mlp_sizes = conv_config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
-        decoder_conv_sizes = conv_config.get('decoder_no_feature_maps', [16, 32, 64, 128])
-        decoder_mlp_sizes = conv_config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
-        latent_size = conv_config.get('latent_size', 16)
+        encoder_conv_sizes = config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_mlp_sizes = config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
+        decoder_conv_sizes = config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_mlp_sizes = config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
+        latent_size = config.get('latent_size', 16)
 
         config_used = {
             'encoder_feature_map': encoder_conv_sizes,
@@ -98,10 +94,9 @@ class HiveModelFactory():
     
     def _get_ae_model(config, input_shape):
         """ Function for building vanilla autoencoder """
-        fc_config = config.get('fully_connected', {})
-        encoder_layer_sizes = fc_config.get('encoder_layer_sizes', [256, 32, 16])
-        decoder_layer_sizes = fc_config.get('decoder_layer_sizes', [16, 32, 256])
-        latent_size = fc_config.get('latent_size', 2)
+        encoder_layer_sizes = config.get('encoder_layer_sizes', [256, 32, 16])
+        decoder_layer_sizes = config.get('decoder_layer_sizes', [16, 32, 256])
+        latent_size = config.get('latent_size', 2)
 
         config_used = {
             'encoder_mlp_layers': encoder_layer_sizes,
@@ -112,12 +107,11 @@ class HiveModelFactory():
 
     def _get_conv_ae_model(config, input_shape):
         """ Function for building convolutional autoencoder """
-        conv_config = config.get('convolutional', {})
-        encoder_conv_sizes = conv_config.get('encoder_no_feature_maps', [128, 64, 32, 16])
-        encoder_mlp_sizes = conv_config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
-        decoder_conv_sizes = conv_config.get('decoder_no_feature_maps', [16, 32, 64, 128])
-        decoder_mlp_sizes = conv_config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
-        latent_size = conv_config.get('latent_size', 16)
+        encoder_conv_sizes = config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_mlp_sizes = config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
+        decoder_conv_sizes = config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_mlp_sizes = config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
+        latent_size = config.get('latent_size', 16)
 
         config_used = {
             'encoder_feature_map': encoder_conv_sizes,
@@ -129,7 +123,13 @@ class HiveModelFactory():
         return model_check(ConvolutionalAE(encoder_conv_sizes, encoder_mlp_sizes, decoder_conv_sizes, decoder_mlp_sizes, \
                         latent_size, input_shape), (1,) + input_shape), config_used
         
-    
+    def _get_discriminator_model(config, input_shape):
+        """ Function for building discirminator model """
+        layer_sizes = config.get('layers', [32, 4])
+
+        config_used = { 'discriminator_layers': layer_sizes }
+        return model_check(Discriminator(layer_sizes, input_shape))
+
     @classmethod
     def build_model(cls, model_type, config, input_shape):
         """ Function for building ml model 

@@ -14,7 +14,9 @@ from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.vae import vae_loss
 
 
-def train_model(model, learning_params, train_loader, val_loader, comet_model_params=None, comet_tag_list=None):
+def train_model(model, learning_params, train_loader, val_loader, 
+                    discriminator=None, discriminator_alpha=None,
+                    comet_model_params=None, comet_tag_list=None):
     """ Function for training model """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_name = type(model).__name__.lower()
@@ -78,7 +80,7 @@ def train_model(model, learning_params, train_loader, val_loader, comet_model_pa
             # forward pass
             output_dict = model(input_data)
             # calculate the loss
-            loss = loss_fun(input_data, **output_dict)
+            loss = loss_fun(input_data, output_dict)
             # backward pass: compute gradient of the loss with respect to model parameters
             loss.backward()
             # perform a single optimization step (parameter update)

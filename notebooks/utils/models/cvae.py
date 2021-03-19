@@ -38,23 +38,28 @@ def _kld_loss(mean, log_var):
     """ KLD loss for normal distribution"""
     return torch.mean(-0.5 * torch.sum(1 + log_var - mean ** 2 - log_var.exp())).item()
 
-def cvae_loss(output, input_target, input_background, kld_weight, discriminator=None, discriminator_aplha=None):
+def cvae_loss(input_tuple,
+                target, tg_qs_mean, tg_qs_log_var, tg_qz_mean, tg_qz_log_var,
+                background, bg_qz_mean, bg_qz_log_var,
+                kld_weight=1, discriminator=None, discriminator_aplha=None):
     """
     This function will add reconstruction loss along with KLD
+    :param input_tuple: (input_target, input_background)
     :param cvae_output: cvae  model output
     :param input_targetL
     :param input_background:
     """    
+    input_target, input_background = input_tuple 
     # MSE target
-    loss = nn.functional.mse_loss(cvae_output['target'], input_target, reduction='mean')
+    loss = nn.functional.mse_loss(target, input_target, reduction='mean')
     # MSE background
-    loss += nn.functional.mse_loss(cvae_output['background'], input_background, reduction='mean')
+    loss += nn.functional.mse_loss(background, input_background, reduction='mean')
     # KLD loss target s
-    loss += kld_weight * _kld_loss(cvae_output['tg_qs_mean'], cvae_output['tg_qs_log_var'])
+    loss += kld_weight * _kld_loss(tg_qs_mean, tg_qs_log_var)
     # KLD loss target z
-    loss += kld_weight * _kld_loss(cvae_output['tg_qz_mean'], cvae_output['tg_qz_log_var'])
+    loss += kld_weight * _kld_loss(tg_qz_mean, tg_qz_log_var)
     # KLD loss background z
-    loss += kld_weight * _kld_loss(cvae_output['bg_qz_mean'], cvae_output['bg_qz_log_var'])
+    loss += kld_weight * _kld_loss(bg_qz_mean, bg_qz_log_var)
 
     if discriminator and discriminator_aplha:
         # total correction loss
@@ -182,7 +187,7 @@ class cVAE(nn.Module):
         tg_output = self.decoder(torch.cat((tg_z, tg_s), axis=2))
         bg_output = self.decoder(torch.cat((bg_z, torch.zeros_like(tg_s)), axis=2))
 
-        return {'output': tg_output,
+        return {'target': tg_output,
                 'tg_qs_mean': tg_s_mean,
                 'tg_qs_log_var': tg_s_log_var,
                 'tg_qz_mean': tg_z_mean,
