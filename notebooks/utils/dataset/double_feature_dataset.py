@@ -2,14 +2,19 @@ from torch.utils.data import Dataset
 
 class DoubleFeatureDataset(Dataset):
     """ Wrapper class for contrastive neural netowrks """
-    def __init__(self, target_filenames, target_labels,
-                        background_filenames, background_labels,
-                        base_class, **base_class_parameters):
+    def __init__(self, target, background, target_labels=[], background_labels=[],
+                        base_class=None, **base_class_parameters):
 
-        assert len(target_filenames) == len(background_filenames)
+        if isinstance(target, Dataset) and isinstance(background, Dataset):
+            self.target = target
+            self.background = target
+        elif base_class is not None:
+            self.target = base_class(target, target_labels, **base_class_parameters)
+            self.background = base_class(background, background_labels, **base_class_parameters)
+        else:
+            raise ValueError("base class should be defined")
 
-        self.target = base_class(target_filenames, target_labels, **base_class_parameters)
-        self.background = base_class(background_filenames, background_labels, **base_class_parameters)
+        assert len(target) == len(background)
 
     def __getitem__(self, idx):
         target_sample = self.target.__getitem__(idx)

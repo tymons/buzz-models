@@ -14,6 +14,17 @@ from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_data
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
 from utils.model_utils import train_model
+from utils.data_utils import filter_strlist
+
+
+def truncate_lists_to_smaller_size(arg1, arg2):
+    if len(arg1) > len(arg2):
+        arg1 = arg1[:len(arg2)]
+    else:
+        arg2 = arg2[:len(arg1)]
+
+    return arg1, arg2
+
 
 def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, data_check_reinit: bool):
     """ Function for getting soundlist from root folder """
@@ -33,7 +44,7 @@ def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, 
 
     assert (len(sound_filenames) > 0), Back.RED + "we cannot read any data from specified folder!"
 
-    return sound_filenames, labels
+    return sound_filenames, list(labels)
 
 def main():
     if os.name == 'nt':
@@ -45,6 +56,8 @@ def main():
     parser.add_argument('feature', metavar='feature', type=str, help='Input feature')
     parser.add_argument('root_folder', metavar='root_folder', type=str, help='Root folder for data')
     # optional arguments
+    parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
+    parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
@@ -68,13 +81,22 @@ def main():
 
     # read sound filenames from 'valid-files.txt' files
     sound_filenames, labels = get_soundfilenames_and_labels(args.root_folder, 'valid-files.txt', args.check_data)
-    # get train and val loaders
-    train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, sound_filenames, labels, config['learning'].get('batch_size', 32), config['features'])
-    # get model
-    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
-    # train single model
-    model = train_model(model, config['learning'], train_loader, val_loader,
-                        comet_model_params=model_params, comet_tag_list=list(labels).append(args.feature))
+    target_filenames, target_labels = (filter_strlist(sound_filenames, *args.target), args.target) if args.target else (sound_filenames, labels)
+    background_filenames, background_labels = (filter_strlist(sound_filenames, *args.background), args.background) if args.background else (None, None)
+
+    if background_filenames is not None:
+        # so we have contrastive learning
+        target_filenames, background_filenames = truncate_lists_to_smaller_size(target_filenames, background_filenames)
+        logging.info(f'got {len(target_filenames)} files as target data and {len(background_filenames)} as background for contrastive learning')
+    
+    train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, target_filenames, target_labels, 
+                                                        config['features'], config['learning'].get('batch_size', 32),
+                                                        background_filenames=background_filenames, background_labels=background_labels)
+    # # # get model
+    # model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'], train_loader.dataset[0][0][0].shape)
+    # # # train single model
+    # model = train_model(model, config['learning'], train_loader, val_loader,
+    #                     comet_model_params=model_params, comet_tag_list=labels.append(args.feature))
 
     if os.name == 'nt':
         deinit()      # colorama restore

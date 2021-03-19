@@ -5,7 +5,7 @@ from utils.dataset.spectrogram_dataset import SpectrogramDataset
 from utils.dataset.mfcc_dataset import MfccDataset
 from utils.dataset.melspectrogram_dataset import MelSpectrogramDataset
 from utils.dataset.bioacustics_indicies.sound_indicies_dataset import SoundIndiciesDataset
-
+from utils.dataset.double_feature_dataset import DoubleFeatureDataset 
 
 class SoundFeatureFactory():        
     """ Factory for data loaders """
@@ -55,7 +55,8 @@ class SoundFeatureFactory():
         return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **config)
 
     @classmethod
-    def build_dataloaders(cls, input_type, sound_filenames, labels, batch_size, features_params_dict, ratio=0.15, num_workers=4):
+    def build_dataloaders(cls, input_type, sound_filenames, labels, features_params_dict, batch_size, ratio=0.15, num_workers=4,
+                            background_filenames=None, background_labels=None):
         """ Function for getting dataloaders 
         
         Parameters:
@@ -72,6 +73,9 @@ class SoundFeatureFactory():
         method_name = f'_get_{input_type.lower()}_dataset'
         function = getattr(cls, method_name, lambda: 'invalid dataset')
         dataset = function(sound_filenames, labels, features_params_dict)
+        if background_filenames and background_labels:
+            background = function(background_filenames, background_labels, features_params_dict)
+            dataset = DoubleFeatureDataset(dataset, background)
 
         val_amount = int(dataset.__len__() * ratio)
         train_set, val_set = random_split(dataset, [(dataset.__len__() - val_amount), val_amount])

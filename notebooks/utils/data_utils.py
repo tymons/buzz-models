@@ -276,7 +276,6 @@ def get_valid_sounds_datalist(folder_list, validfile_filename):
         with open(summary_file, 'r') as f:
             sound_filenames += f.read().splitlines()
 
-    print(f'got {len(sound_filenames)} sound filenames read for {len(summary_files)} files/folders')
     return sound_filenames
 
 def filter_strlist(input_str_list, *names):
