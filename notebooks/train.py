@@ -83,22 +83,24 @@ def main():
     sound_filenames, labels = get_soundfilenames_and_labels(args.root_folder, 'valid-files.txt', args.check_data)
     target_filenames, target_labels = (filter_strlist(sound_filenames, *args.target), args.target) if args.target else (sound_filenames, labels)
     background_filenames, background_labels = (filter_strlist(sound_filenames, *args.background), args.background) if args.background else (None, None)
-
     if background_filenames is not None:
-        # so we have contrastive learning
+        # so we have contrastive learning and target/background has to have the same size
         target_filenames, background_filenames = truncate_lists_to_smaller_size(target_filenames, background_filenames)
         logging.info(f'got {len(target_filenames)} files as target data and {len(background_filenames)} as background for contrastive learning')
     
+    # get loaders
     train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, target_filenames, target_labels, 
                                                         config['features'], config['learning'].get('batch_size', 32),
                                                         background_filenames=background_filenames, background_labels=background_labels)
-    # get models
+    # get model
     model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], train_loader.dataset[0][0][0].shape)
     discirminator = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
                                                     config['model_architecture'][args.model_type]['latent_size'] * 2) if args.discriminator else None
-    # train single model
+    discirminator_alpha = config['learning'].get('discriminator_alpha', 0.1) if args.discriminator else None
+
+    # train model
     model = train_model(model, config['learning'], train_loader, val_loader, 
-                        discriminator=discirminator, discriminator_alpha=config['learning']['discriminator_alpha'],
+                        discriminator=discirminator, discriminator_alpha=discirminator_alpha,
                         comet_model_params=model_params, comet_tag_list=labels.append(args.feature))
 
     if os.name == 'nt':

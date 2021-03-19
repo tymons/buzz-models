@@ -14,9 +14,17 @@ from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.vae import vae_loss
 
 
+def setup_comet_ml_experiment(project_name, experiment_name, parameters, tags):
+    """ Function for setting up comet ml experiment """
+    experiment = Experiment(project_name=project_name, auto_metric_logging=False)
+    experiment.set_name(experiment_name)
+    experiment.log_parameters(parameters)
+    experiment.add_tags(comet_tag_list)
+    return experiment
+
 def train_model(model, learning_params, train_loader, val_loader, 
                     discriminator=None, discriminator_alpha=None,
-                    comet_model_params=None, comet_tag_list=None):
+                    comet_model_params={}, comet_tag_list=[]):
     """ Function for training model """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model_name = type(model).__name__.lower()
@@ -33,17 +41,13 @@ def train_model(model, learning_params, train_loader, val_loader,
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
-    experiment = Experiment(project_name=f"{model_name.lower()}-bee-sound", auto_metric_logging=False)
-    experiment.log_parameters(learning_params)
-    if comet_model_params:
-        experiment.log_parameters(comet_model_params)
-    experiment.set_name(f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}")
-    if comet_tag_list:
-        experiment.add_tags(comet_tag_list)
+    comet_tag_list = comet_tag_list.append('discriminator') if discriminator else comet_tag_list
+    experiment = setup_comet_ml_experiment(f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
+                                            parameters=dict(learning_params, **comet_model_params), tags=comet_tag_list)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
-
+    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
     # monitor training loss per batch
     train_loss = []
     # monitor validation loss per batch
@@ -59,6 +63,9 @@ def train_model(model, learning_params, train_loader, val_loader,
 
     # pass model to gpu if is available
     model.to(device)
+
+    if discriminator is not None:
+        discriminator.to(device)
 
     for epoch in range(1, learning_params['epochs'] + 1):
         ###################
