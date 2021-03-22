@@ -82,27 +82,33 @@ def main():
     # read sound filenames from 'valid-files.txt' files
     sound_filenames, labels = get_soundfilenames_and_labels(args.root_folder, 'valid-files.txt', args.check_data)
     target_filenames, target_labels = (filter_strlist(sound_filenames, *args.target), args.target) if args.target else (sound_filenames, labels)
-    background_filenames, background_labels = (filter_strlist(sound_filenames, *args.background), args.background) if args.background else (None, None)
-    if background_filenames is not None:
+    background_filenames, background_labels = (filter_strlist(sound_filenames, *args.background), args.background) if args.background else ([], [])
+    if background_filenames:
         # so we have contrastive learning and target/background has to have the same size
         target_filenames, background_filenames = truncate_lists_to_smaller_size(target_filenames, background_filenames)
         logging.info(f'got {len(target_filenames)} files as target data and {len(background_filenames)} as background for contrastive learning')
-    
+
+    log_labels = target_labels + background_labels + [args.feature]
+
     # get loaders
     train_loader, val_loader = SoundFeatureFactory.build_dataloaders(args.feature, target_filenames, target_labels, 
                                                         config['features'], config['learning'].get('batch_size', 32),
                                                         background_filenames=background_filenames, background_labels=background_labels)
-    # get model
-    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], train_loader.dataset[0][0][0].shape)
-    discirminator, disc_params = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
-                                                    config['model_architecture'][args.model_type]['latent_size'] * 2) if args.discriminator else (None, {})
-    discirminator_alpha = config['learning'].get('discriminator_alpha', 0.1) if args.discriminator else None
+
+    # build model
+    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], train_loader.dataset[0][0][0].squeeze().shape)
     
-    # train model
-    model_params.update(disc_params)
-    labels.append(args.feature)
-    model = train_model(model, config['learning'], train_loader, val_loader, discriminator=discirminator,
-                         comet_params=model_params, comet_tags=labels)
+    discriminator, disc_params, discirminator_alpha  = (None, {}, None)
+    if args.discriminator is True:
+        # if we have discirminator arg build that model
+        discriminator, disc_params = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
+                                                    tuple((config['model_architecture'][args.model_type]['latent_size'] * 2, )))
+        discirminator_alpha = config['learning'].get('discriminator_alpha', 0.1)
+        log_labels.append('discriminator')
+
+    # # train model
+    log_dict = {**model_params, **disc_params}
+    model = train_model(model, config['learning'], train_loader, val_loader, discriminator=discriminator, comet_params=log_dict, comet_tags=log_labels)
 
     if os.name == 'nt':
         deinit()      # colorama restore
