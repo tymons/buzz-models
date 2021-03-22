@@ -57,10 +57,13 @@ def main():
     # optional arguments
     parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
     parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
-    parser.add_argument("--discriminator", type=bool, default=False, help="should use discirminator in contrastive learning")
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
+    parser.add_argument('--discriminator', dest='discriminator', action='store_true')
+    parser.add_argument('--no-discriminator', dest='discriminator', action='store_false')
+    parser.set_defaults(discriminator=False)
+
     args = parser.parse_args()
 
     # read config file
