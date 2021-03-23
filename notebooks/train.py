@@ -90,6 +90,7 @@ def main():
         # so we have contrastive learning and target/background has to have the same size
         target_filenames, background_filenames = truncate_lists_to_smaller_size(target_filenames, background_filenames)
         logging.info(f'got {len(target_filenames)} files as target data and {len(background_filenames)} as background for contrastive learning')
+    logging.info(f'dataset total length: {len(target_filenames) + len(background_filenames)}')
 
     log_labels = target_labels + background_labels + [args.feature]
 
@@ -99,7 +100,9 @@ def main():
                                                         background_filenames=background_filenames, background_labels=background_labels)
 
     # build model
-    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], train_loader.dataset[0][0][0].squeeze().shape)
+    data_shape = train_loader.dataset[0][0][0].squeeze().shape
+    logging.info(f'building model with data input shape of {data_shape}')
+    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], data_shape)
     
     discriminator, disc_params, discirminator_alpha  = (None, {}, None)
     if args.discriminator is True:
