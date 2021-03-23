@@ -314,3 +314,31 @@ def _batch_perform(batch_data: torch.Tensor, operation: Callable):
     batch_data[:, 0, :] = output
 
     return batch_data
+
+def closest_power_2(x):
+    """ Function returning nerest power of two """
+    possible_results = math.floor(math.log(x, 2)), math.ceil(math.log(x, 2))
+    return min(possible_results, key=lambda z: abs(x-2**z))
+
+def adjust_matrix(matrix, *lengths):
+    """ Function for truncating matrix to lengths
+    
+    Parameters:
+        matrix: matrix to be truncated or expanded
+     """
+    for i, length in enumerate(lengths):
+        shape = matrix.shape
+        if length > shape[i]:
+            # pad with zeros
+            diff = length - shape[i]
+            new_shape = list(shape)
+            new_shape[i] = diff
+            new_shape = tuple(new_shape)
+            zeros = np.zeros(new_shape)
+            matrix = np.append(matrix, zeros, axis=i)
+        else:
+            matrix = np.swapaxes(matrix, 0, i)
+            matrix = matrix[:length, ...]
+            matrix = np.swapaxes(matrix, i, 0)
+
+    return matrix

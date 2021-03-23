@@ -28,7 +28,7 @@ class MfccDataset(Dataset, Sound):
         mfccs = mfccs.astype(np.float32)
         mfccs_avg = np.mean(mfccs, axis=1)
         mfccs_avg = mfccs_avg[None, :]
-        return (mfccs_avg, label)
+        return [mfccs_avg], label
         
     def __len__(self):
         return len(self.filenames)

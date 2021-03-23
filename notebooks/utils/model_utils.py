@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import math
 
 from comet_ml import Experiment
 
@@ -14,6 +15,8 @@ from utils.models.vae import vae_loss
 from utils.models.discriminator import discriminator_loss
 from utils.models.ae import ae_loss_fun
 from utils.models.cvae import cvae_loss
+
+
 
 def permutate_latent(latents_batch, inplace=False):
     """ Function for element permutation along axis
@@ -74,7 +77,6 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
-    comet_tags = comet_tags.append('discriminator') if discriminator else comet_tags
     experiment = setup_comet_ml_experiment(f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
                                             parameters=dict(learning_params, **comet_params), tags=comet_tags)
 
@@ -92,34 +94,40 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     best_val_loss = -1
     # model checkpoint filename
     checkpoint_filename = f'output{os.sep}models{os.sep}{experiment.get_name()}-checkpoint.pth'
-    # early stopping epoch
-    win_epoch = 0
 
     # pass model to gpu if is available
     model.to(device)
     if discriminator is not None:
         discriminator.to(device)
-        discriminator.train()
 
     for epoch in range(1, learning_params['epochs'] + 1):
         ###################
         # train the model #
         ###################
-        model.train()
         step = 1
-        for data, label in train_loader:
-            # batch calculation
-            if learning_params['batch_standarize']:
-                data = batch_standarize(data)
-            if learning_params['batch_normalize']:
-                data = batch_normalize(data)
-            input_data = data.to(device)
+        model.train()
+        if discriminator:
+            discriminator.train()
+
+        for concatenated_batch, label in train_loader:
+            for position, batch in enumerate(concatenated_batch):
+                # as every dataset should return list (one or two elements - depends on contrastive learning or not)
+                # we should every element normalize/standarzie and pass to gpu
+                if learning_params['batch_standarize']:
+                    batch = batch_standarize(batch)
+                if learning_params['batch_normalize']:
+                    batch = batch_normalize(batch)
+                concatenated_batch[position] = batch.to(device)
 
             optimizer.zero_grad()
-            output_dict = model(input_data)
-            loss = loss_fun(input_data, output_dict)
+            output_dict = model(*concatenated_batch)
+            if discriminator is None:
+                loss = loss_fun(*concatenated_batch, output_dict)
+            else:
+                loss = loss_fun(*concatenated_batch, output_dict, discriminator=discriminator, discriminator_alpha=learning_params['discriminator']['alpha'])
             loss.backward()
             optimizer.step()
+
             # log comet ml metric and watch avg losses
             experiment.log_metric("batch_train_loss", loss.item(), step=step)
             train_loss.append(loss.item())
@@ -134,6 +142,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                 dloss = discriminator_loss(q_score, q_bar_score)
                 dloss.backward()
                 optimizer_discriminator.step()
+
                 # log comet ml metric
                 experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
 
@@ -144,16 +153,23 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         ###################
         model.eval()
         step = 1
-        for val_data, label in val_loader:
-            if learning_params['batch_standarize']:
-                val_data = batch_standarize(val_data)
-            if learning_params['batch_normalize']:
-                val_data = batch_normalize(val_data)
-            input_data_val = val_data.to(device)
+        for concatenated_val_batch, label in val_loader:
+            # as every dataset should return list (one or two elements - depends on contrastive learning or not)
+            # we should every element normalize/standarzie and pass to gpu
+            for position, batch_val in enumerate(concatenated_val_batch):
+                if learning_params['batch_standarize']:
+                    batch_val = batch_standarize(batch_val)
+                if learning_params['batch_normalize']:
+                    batch_val = batch_normalize(batch_val)
+                concatenated_val_batch[position] = batch_val.to(device)
             
-            val_output_dict = model(input_data_val)
-            vloss = loss_fun(input_data_val, **val_output_dict)
+            val_output_dict = model(*concatenated_val_batch)
+            if discriminator is None:
+                vloss = loss_fun(*concatenated_val_batch, val_output_dict)
+            else:
+                vloss = loss_fun(*concatenated_val_batch, val_output_dict, discriminator=discriminator, discriminator_alpha=learning_params['discriminator']['alpha'])
             val_loss.append(vloss.item())
+
             # log comet ml metric
             experiment.log_metric("batch_val_loss", vloss.item(), step=step)
             step = step + 1
@@ -169,20 +185,21 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         experiment.log_metric("val_loss", val_loss, step=epoch)
 
         if val_loss < best_val_loss or best_val_loss == -1:
-            # new checkpoint
+            # new checkpoint 
             logging.info("checkpoint!")
             best_val_loss = val_loss
             patience_counter = 0
             torch.save(model.state_dict(), checkpoint_filename)
-            win_epoch = epoch
-        elif patience_counter >= learning_params['patience']:
+        elif patience_counter >= learning_params['patience'] or val_loss is math.isnan(val_loss):
             logging.info("early stopping.")
             logging.info(f"=> loading checkpoint {checkpoint_filename}")
-            model.load_state_dict(torch.load(checkpoint_filename))
-            break
+            return checkpoint_filename
         else:
             patience_counter = patience_counter + 1
 
         # clear batch losses
         train_loss = []
         val_loss = []
+    
+    return model
+

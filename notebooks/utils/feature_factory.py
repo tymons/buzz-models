@@ -1,3 +1,5 @@
+import logging
+
 from torch.utils.data import DataLoader, random_split
 
 from utils.dataset.periodogram_dataset import PeriodogramDataset
@@ -16,7 +18,8 @@ class SoundFeatureFactory():
         hop_len = spectrogram_params.get('hop_len', (4096//3)+30)
         fmax = spectrogram_params.get('fmax', 2750)
 
-        return SpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, fmax=fmax)
+        logging.info(f'building spectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), fmax({fmax})')
+        return SpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, fmax=fmax, truncate_power_two=True)
 
     def _get_melspectrogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting melspectrogram dataset """
@@ -25,7 +28,8 @@ class SoundFeatureFactory():
         hop_len = melspectrogram_params.get('hop_len', (4096//3)+30)
         no_mels = melspectrogram_params.get('mels', 64)
 
-        return MelSpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels)
+        logging.info(f'building melspectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), no_mels({no_mels})')
+        return MelSpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels, truncate_power_two=True)
 
     def _get_periodogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting periodogram dataset """
@@ -35,6 +39,7 @@ class SoundFeatureFactory():
         db_scale = periodogram_params.get('scale_db', False)
         should_scale = periodogram_params.get('scale', True)
 
+        logging.info(f'building periodogram dataset with params: db_scale({db_scale}), min_max_scale({should_scale}), slice_freq({(start_freq, stop_freq)})')
         return PeriodogramDataset(sound_filenames, labels, scale_db=db_scale, scale=should_scale, slice_freq=(start_freq, stop_freq))
 
     def _get_mfcc_dataset(sound_filenames, labels, features_params_dict):
@@ -44,6 +49,7 @@ class SoundFeatureFactory():
         hop_len = mfcc_params.get('hop_len', (4096//3)+30)
         no_mels = mfcc_params.get('mels', 64)
 
+        logging.info(f'building mfcc dataset with params: nfft({nfft}), hop_len({hop_len}), no_mels({no_mels})')
         return MfccDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels)
 
     def _get_indicies_dataset(sound_filenames, labels, features_params_dict):
@@ -52,11 +58,12 @@ class SoundFeatureFactory():
         indicator_type = sound_indicies_params.get('type', 'aci')
         config = sound_indicies_params.get('config', {'j_samples': 512})
 
+        logging.info(f'building sound bio indicies dataset with params: type({indicator_type}), config({config})')
         return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **config)
 
     @classmethod
     def build_dataloaders(cls, input_type, sound_filenames, labels, features_params_dict, batch_size, ratio=0.15, num_workers=4,
-                            background_filenames=None, background_labels=None):
+                            background_filenames=[], background_labels=[]):
         """ Function for getting dataloaders 
         
         Parameters:
@@ -79,7 +86,7 @@ class SoundFeatureFactory():
 
         val_amount = int(dataset.__len__() * ratio)
         train_set, val_set = random_split(dataset, [(dataset.__len__() - val_amount), val_amount])
-        train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-        val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+        train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
+        val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
 
         return train_loader, val_loader

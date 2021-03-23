@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
+from utils.data_utils import adjust_matrix, closest_power_2
 from utils.dataset.sound import Sound
 
 def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scale=True, db_scale=True):
@@ -51,7 +52,7 @@ def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scal
 
 class SpectrogramDataset(Dataset, Sound):
     """ Spectrogram dataset """
-    def __init__(self, filenames, hives, nfft, hop_len, fmax=None):
+    def __init__(self, filenames, hives, nfft, hop_len, fmax=None, truncate_power_two=False):
         """ Constructor for Sepctrogram Dataset
 
         Parameters:
@@ -65,6 +66,7 @@ class SpectrogramDataset(Dataset, Sound):
         self.nfft = nfft
         self.hop_len = hop_len
         self.fmax = fmax
+        self.truncate = truncate_power_two
 
     def read_item(self, idx):
         """ Function for getting item from Spectrogram dataset
@@ -78,6 +80,8 @@ class SpectrogramDataset(Dataset, Sound):
         sound_samples, sampling_rate, label = Sound.read_sound(self, idx)
         spectrogram_db, frequencies, times = calculate_spectrogram(sound_samples, sampling_rate, self.nfft, \
                                                                      self.hop_len, self.fmax, scale=True)
+        if self.truncate:
+            spectrogram_db = adjust_matrix(spectrogram_db, 2**closest_power_2(spectrogram_db.shape[0]), 2**closest_power_2(spectrogram_db.shape[1]))
 
         return ((spectrogram_db, frequencies, times), label)
 
@@ -89,7 +93,7 @@ class SpectrogramDataset(Dataset, Sound):
     def __getitem__(self, idx):
         """ Wrapper for getting item from Spectrogram dataset """
         (data, _, _), labels = self.read_item(idx)
-        return data, labels
+        return [data], labels
  
     def __len__(self):
         return len(self.filenames)

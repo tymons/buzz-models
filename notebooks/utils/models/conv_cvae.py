@@ -1,14 +1,17 @@
 import torch
+import math
+import logging
 
 from torch import nn
 
-from utils.models.conv_vae import ConvolutionalDecoder, ConvolutionalEncoder
+from utils.models.conv_ae import ConvolutionalDecoder, ConvolutionalEncoder, conv_mlp_layer_shape
 from utils.models.vae import reparameterize
+
 
 class ConvolutionalCVAE(nn.Module):
     """ Class for convolutional cvae """
     def __init__(self, encoder_conv_sizes, encoder_mlp_sizes,
-                    decoder_conv_sizes, decoder_mlp_sizes, latent_size, input_size):
+                    decoder_conv_sizes, decoder_mlp_sizes, latent_size, input_shape):
 
         super().__init__()	
 
@@ -17,11 +20,13 @@ class ConvolutionalCVAE(nn.Module):
         assert type(latent_size) == int
         assert type(decoder_conv_sizes) == list
         assert type(decoder_mlp_sizes) == list
+        
+        conv_to_mlp_shape = conv_mlp_layer_shape(input_shape, encoder_conv_sizes, kernel=3, stride=1, padding=1, max_pool=(2,2))
 
         self.latent_size = latent_size
-        self.s_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes)
-        self.z_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes)
-        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, 2 * latent_size, input_size[0]//input_size[1])
+        self.s_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, conv_to_mlp_shape)
+        self.z_encoder = ConvolutionalEncoder(encoder_conv_sizes, encoder_mlp_sizes, conv_to_mlp_shape)
+        self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, 2 * latent_size, conv_to_mlp_shape)
 
         self.s_linear_means = nn.Linear(encoder_mlp_sizes[-1], latent_size)
         self.s_linear_log_var = nn.Linear(encoder_mlp_sizes[-1], latent_size)

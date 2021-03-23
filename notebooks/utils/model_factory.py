@@ -38,6 +38,7 @@ class HiveModelFactory():
             'decoder_layer_sizes': decoder_layer_sizes,
             'latent': latent_size
         }
+        logging.info(f'building vae model with config: encoder_layers({encoder_layer_sizes}), decoder_layer_sizes({decoder_layer_sizes}),  latent({latent_size})')
         return model_check(VAE(encoder_layer_sizes, latent_size, decoder_layer_sizes, input_shape[0]), (1,) + input_shape), config_used
 
     def _get_cvae_model(config, input_shape):
@@ -52,6 +53,8 @@ class HiveModelFactory():
             'latent': latent_size
         }
         validate_input_shape = (1,) + input_shape
+
+        logging.info(f'building cvae model with config: encoder_layers({encoder_layer_sizes}), decoder_layer_sizes({decoder_layer_sizes}),  latent({latent_size})')
         return model_check(cVAE(encoder_layer_sizes, latent_size, decoder_layer_sizes, input_shape[0]), \
                             [validate_input_shape, validate_input_shape]), config_used
 
@@ -70,6 +73,8 @@ class HiveModelFactory():
             'decoder_mlp_layers': decoder_mlp_sizes,
             'latent': latent_size
         }
+        logging.info(f'building conv vae model with config: encoder_conv_sizes({encoder_conv_sizes}), encoder_mlp_sizes({encoder_mlp_sizes}), '
+                        f'decoder_conv_sizes({decoder_conv_sizes}), decoder_mlp_sizes({decoder_mlp_sizes}), latent({latent_size})')
         return model_check(ConvolutionalVAE(encoder_conv_sizes, encoder_mlp_sizes, decoder_conv_sizes, decoder_mlp_sizes, \
                                 latent_size, input_shape), (1,) + input_shape), config_used
 
@@ -89,6 +94,8 @@ class HiveModelFactory():
             'latent': latent_size
         }
         validate_input_shape = (1,) + input_shape
+        logging.info(f'building conv cvae model with config: encoder_conv_sizes({encoder_conv_sizes}), encoder_mlp_sizes({encoder_mlp_sizes}), '
+                        f'decoder_conv_sizes({decoder_conv_sizes}), decoder_mlp_sizes({decoder_mlp_sizes}), latent({latent_size})')
         return model_check(ConvolutionalCVAE(encoder_conv_sizes, encoder_mlp_sizes, decoder_conv_sizes, decoder_mlp_sizes, \
                                     latent_size, input_shape), [validate_input_shape, validate_input_shape]), config_used
     
@@ -103,6 +110,7 @@ class HiveModelFactory():
             'decoder_layer_sizes': decoder_layer_sizes,
             'latent': latent_size
         }
+        logging.info(f'building ae model with config: encoder_layers({encoder_layer_sizes}), decoder_layer_sizes({decoder_layer_sizes}),  latent({latent_size})')
         return model_check(Autoencoder(encoder_layer_sizes, latent_size, decoder_layer_sizes, input_shape[0]), (1,) + input_shape), config_used
 
     def _get_conv_ae_model(config, input_shape):
@@ -120,6 +128,8 @@ class HiveModelFactory():
             'decoder_mlp_layers': decoder_mlp_sizes,
             'latent': latent_size
         }
+        logging.info(f'building conv ae model with config: encoder_conv_sizes({encoder_conv_sizes}), encoder_mlp_sizes({encoder_mlp_sizes}), '
+                        f'decoder_conv_sizes({decoder_conv_sizes}), decoder_mlp_sizes({decoder_mlp_sizes}), latent({latent_size})')
         return model_check(ConvolutionalAE(encoder_conv_sizes, encoder_mlp_sizes, decoder_conv_sizes, decoder_mlp_sizes, \
                         latent_size, input_shape), (1,) + input_shape), config_used
         
@@ -128,7 +138,9 @@ class HiveModelFactory():
         layer_sizes = config.get('layers', [32, 4])
 
         config_used = { 'discriminator_layers': layer_sizes }
-        return model_check(Discriminator(layer_sizes, input_shape), (1,) + input_shape), config_used
+        validation_input_shape = (1,) + input_shape
+        logging.info(f'building discriminator model with config: discriminator_layers({layer_sizes})')
+        return model_check(Discriminator(layer_sizes, input_shape[0]), [validation_input_shape, validation_input_shape]), config_used
 
     @classmethod
     def build_model(cls, model_type, config, input_shape):

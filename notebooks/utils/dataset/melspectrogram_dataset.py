@@ -9,10 +9,11 @@ from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler
 
 from utils.dataset.sound import Sound
+from utils.data_utils import adjust_matrix, closest_power_2
 
 class MelSpectrogramDataset(Dataset, Sound):
     """ MelSpectrogram dataset """
-    def __init__(self, filenames, hives, nfft, hop_len, mels):
+    def __init__(self, filenames, hives, nfft, hop_len, mels, truncate_power_two=False):
         """ Constructor for MelSepctrogram Dataset
 
         Parameters:
@@ -21,12 +22,13 @@ class MelSpectrogramDataset(Dataset, Sound):
             nfft (int): how many samples for nfft
             hop_len (int): overlapping, samples for hop to next fft
             mels (int): mels
-            fmax (int): constraint on maximum frequency
+            truncate_power_two (bool): if we should truncate our shape to the nearest power of two
         """
         Sound.__init__(self, filenames, hives)
         self.nfft = nfft
         self.hop_len = hop_len
         self.mels = mels
+        self.truncate = truncate_power_two
 
     def __getitem__(self, idx):
         # read sound samples from file
@@ -35,12 +37,14 @@ class MelSpectrogramDataset(Dataset, Sound):
         mel = librosa.feature.melspectrogram(y=sound_samples, sr=sampling_rate, \
                                              n_fft=self.nfft, hop_length=self.hop_len, n_mels=self.mels)
         mel = librosa.power_to_db(mel, np.max)
-        
+        if self.truncate:
+            mel = adjust_matrix(mel, 2**closest_power_2(mel.shape[0]), 2**closest_power_2(mel.shape[1]))
+
         initial_shape = mel.shape
         mel_scaled_spectrogram_db = MinMaxScaler().fit_transform(mel.reshape(-1, 1)).reshape((1, *initial_shape))
         mel_scaled_spectrogram_db = mel_scaled_spectrogram_db.astype(np.float32)
 
-        return (mel_scaled_spectrogram_db, label)
+        return [mel_scaled_spectrogram_db], label
  
     def __len__(self):
         return len(self.filenames)

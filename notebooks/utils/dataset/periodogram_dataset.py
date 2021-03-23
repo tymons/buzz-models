@@ -22,7 +22,7 @@ class PeriodogramDataset(Dataset, Sound):
     def __getitem__(self, idx):
         """ Method for pytorch dataloader """
         (periodogram, _), labels = self.get_item(idx)
-        return periodogram[None, :], labels
+        return [periodogram[None, :]], labels
         
 
     def get_item(self, idx):

@@ -10,6 +10,24 @@ from utils.models.vae import reparameterize
 
 from comet_ml import Experiment
 
+def permutate_latent(latents_batch, inplace=False):
+    """ Function for element permutation along specified axis
+    
+    Parameters:
+        latent_batch (torch.tensor): input matrix to be permutated
+        inplace (bool): modify original tensor or not
+    Returns
+    """
+    latents_batch = latents_batch.squeeze()
+    
+    data = latents_batch.detach().clone() if inplace == False else latents_batch
+
+    for column_idx in range(latents_batch.shape[-1]):
+        rand_indicies = torch.randperm(latents_batch[:, column_idx].shape[0])
+        latents_batch[:, column_idx] = latents_batch[:, column_idx][rand_indicies]
+
+    return data
+
 
 def discriminator_loss(log_ratio_p, log_ratio_q):
     loss_p = nn.functional.binary_cross_entropy_with_logits(log_ratio_p, torch.ones_like(log_ratio_p), reduction='mean')
@@ -20,10 +38,7 @@ def _kld_loss(mean, log_var):
     """ KLD loss for normal distribution"""
     return torch.mean(-0.5 * torch.sum(1 + log_var - mean ** 2 - log_var.exp())).item()
 
-def cvae_loss(input_tuple,
-                target, tg_qs_mean, tg_qs_log_var, tg_qz_mean, tg_qz_log_var,
-                background, bg_qz_mean, bg_qz_log_var,
-                kld_weight=1, discriminator=None, discriminator_aplha=None):
+def cvae_loss(input_target, input_background, cvae_output, discriminator=None, discriminator_alpha=None, kld_weight=1):
     """
     This function will add reconstruction loss along with KLD
     :param input_tuple: (input_target, input_background)
@@ -31,104 +46,26 @@ def cvae_loss(input_tuple,
     :param input_targetL
     :param input_background:
     """    
-    input_target, input_background = input_tuple 
     # MSE target
-    loss = nn.functional.mse_loss(target, input_target, reduction='mean')
+    loss = nn.functional.mse_loss(input_target, cvae_output['target'], reduction='mean')
     # MSE background
-    loss += nn.functional.mse_loss(background, input_background, reduction='mean')
+    loss += nn.functional.mse_loss(input_background, cvae_output['background'], reduction='mean')
     # KLD loss target s
-    loss += kld_weight * _kld_loss(tg_qs_mean, tg_qs_log_var)
+    loss += kld_weight * _kld_loss(cvae_output['tg_qs_mean'], cvae_output['tg_qs_log_var'])
     # KLD loss target z
-    loss += kld_weight * _kld_loss(tg_qz_mean, tg_qz_log_var)
+    loss += kld_weight * _kld_loss(cvae_output['tg_qz_mean'], cvae_output['tg_qz_log_var'])
     # KLD loss background z
-    loss += kld_weight * _kld_loss(bg_qz_mean, bg_qz_log_var)
+    loss += kld_weight * _kld_loss(cvae_output['bg_qz_mean'], cvae_output['bg_qz_log_var'])
 
-    if discriminator and discriminator_aplha:
+    if discriminator and discriminator_alpha:
         # total correction loss
         q = torch.cat((cvae_output["latent_qs_target"], cvae_output["latent_qz_target"]), axis=-1)
         q_score, _ = discriminator(q, torch.zeros_like(q))
-        disc_loss = discriminator_aplha * torch.mean(torch.log(q_score/(1-q_score)))
+        disc_loss = discriminator_alpha * torch.mean(torch.log(q_score/(1-q_score)))
         loss += disc_loss
 
     return loss
 
-def train_cvae(model, model_params, dataloader_train, dataloader_val, disc=None, disc_params=None):
-    """ function for training cvae 
-    
-    Parameters:
-        model (nn.Module): 
-        dataloader_train (DataLoader(DoubleFeatureDataset)): train dataloader with DoubleFeatureDataset as dataset object
-        dataloader_val (DataLoader(DoubleFeatureDataset)): validation dataloader with DoubleFeatureDataset as dataset object
-        lr (float): learning rate
-        weigth_decay (float): weight_decay for adam optimizer
-        epochs (int): number of epochs
-    """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=model_params['learning_rate'], weight_decay=model_params['weight_decay'])
-    optimizer_discriminator = torch.optim.Adam(disc.parameters(), lr=disc_params['learning_rate'], weight_decay=disc_params['weight_decay']) if disc else None
-    model.to(device)
-
-    alpha = disc_params['alpha'] if disc else None
-    if disc:
-        disc.to(device)
-        disc.train()
-
-    loss = []
-    dloss = []
-    for epoch in range(model_params['epochs']):
-        ###################
-        # train the model #
-        ###################
-        print(f'-> training at epoch {epoch}', flush=True)
-        model.train()          
-        with tqdm(total=len(dataloader_train)) as pbar:
-            for target, background in tqdm(dataloader_train, position=0, leave=True):
-                # cvae
-                target = batch_normalize(target)
-                background = batch_normalize(background)
-                target = target.to(device)
-                background = background.to(device)
-                optimizer.zero_grad()
-                output_dict = model(target, background)
-                loss = cvae_loss(output_dict, target, background, 1, disc, alpha)
-                loss.backward()
-                optimizer.step()
-
-                # discirminator
-                if disc:
-                    q = torch.cat((output_dict["latent_qs_target"].detach(), output_dict["latent_qz_target"].detach()), axis=-1).to(device)
-                    q_bar = permutate_latent(q)
-                    q_bar = q_bar.to(device)
-
-                    optimizer_discriminator.zero_grad()
-                    q_score, q_bar_score = disc(q, q_bar)
-                    dloss = discriminator_loss(q_score, q_bar_score)
-                    dloss.backward()
-                    optimizer_discriminator.step()
-                
-                pbar.update(1)
-
-        ###################
-        # val the model   #
-        ###################
-        print(f'-> validating at epoch {epoch}', flush=True)
-        with torch.no_grad():
-            model.eval()
-            with tqdm(total=len(dataloader_val)) as pbar:
-                for target_val, background_val in tqdm(dataloader_val, position=0, leave=True):
-                    target_val = batch_normalize(target_val)
-                    background_val = batch_normalize(background_val)
-                    target_val = target_val.to(device)
-                    background_val = background_val.to(device)
-                    output_dict_val = model(target_val, background_val)
-                    vloss = cvae_loss(output_dict_val, target_val, background_val, 1)
-
-                    pbar.update(1)
-
-        print(f'Epoch [{epoch+1}/{model_params["epochs"]}], LOSS: {loss.item():.5f}, VAL_LOSS: {vloss.item():.5f} DISC_LOSS: {(dloss.item() if disc else -1):.5f}')
-    return model
-    
 
 class cVAE(nn.Module):
     """ Class for Contrastive autoencoder """
