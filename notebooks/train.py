@@ -25,6 +25,26 @@ def truncate_lists_to_smaller_size(arg1, arg2):
     return arg1, arg2
 
 
+def build_and_train_model(model_type, model_config, train_config, train_loader, val_loader, use_discriminator=False, discirminator_config=None, comet_tags=[]):
+    """ function for building and training model """
+    data_shape = train_loader.dataset[0][0][0].squeeze().shape
+    logging.info(f'building model with data input shape of {data_shape}')
+
+    model, model_params = HiveModelFactory.build_model(model_type, model_config, data_shape)
+
+    discriminator, disc_params, discirminator_alpha  = (None, {}, None)
+    if use_discriminator is True and discirminator_config:
+        # if we have discirminator arg build that model
+        discriminator, disc_params = HiveModelFactory.build_model('discriminator', discirminator_config, tuple((model_config['latent_size'] * 2, )))
+        discirminator_alpha = train_config['discriminator'].get('alpha', 0.1)
+        comet_tags.append('discriminator')
+
+    # train model
+    log_dict = {**model_params, **disc_params}
+    model = train_model(model, train_config, train_loader, val_loader, discriminator=discriminator, comet_params=log_dict, comet_tags=comet_tags)
+    return model
+
+
 def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, data_check_reinit: bool):
     """ Function for getting soundlist from root folder """
     if data_check_reinit:
@@ -60,6 +80,7 @@ def main():
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
+    parser.add_argument('--random_serach', type=int, help='number of tries to find best architecture')
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
     parser.add_argument('--no-discriminator', dest='discriminator', action='store_false')
     parser.set_defaults(discriminator=False)
@@ -99,22 +120,32 @@ def main():
                                                         config['features'], config['learning'].get('batch_size', 32),
                                                         background_filenames=background_filenames, background_labels=background_labels)
 
-    # build model
-    data_shape = train_loader.dataset[0][0][0].squeeze().shape
-    logging.info(f'building model with data input shape of {data_shape}')
-    model, model_params = HiveModelFactory.build_model(args.model_type, config['model_architecture'][args.model_type], data_shape)
-    
-    discriminator, disc_params, discirminator_alpha  = (None, {}, None)
-    if args.discriminator is True:
-        # if we have discirminator arg build that model
-        discriminator, disc_params = HiveModelFactory.build_model('discriminator', config['model_architecture']['discriminator'],
-                                                    tuple((config['model_architecture'][args.model_type]['latent_size'] * 2, )))
-        discirminator_alpha = config['learning'].get('discriminator_alpha', 0.1)
-        log_labels.append('discriminator')
+    if args.random_serach:
+        logging.info(f'random search architecture configuration for model {args.model_type} is active.')
+        for sample_no in range(args.random_serach):
+            # generate model config 
+            if args.model_type.startswith('conv'):
+                model_config = generate_conv_model_config(config['random_search']['model']['conv'])
+            elif args.model_type is not 'discriminator':
+                model_config = generate_fc_model_config(config['random_search']['model']['fc'])
+            else:
+                raise ValueError(f'model {args.model_type} not supported for random search!')
+            # generate random train config and merge with existing 
+            train_config = {**generate_train_infos(config['random_search']['learning']), **config['learning']}
+            # generate random discriminator config if needed
+            discriminator_config = generate_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
-    # # train model
-    log_dict = {**model_params, **disc_params}
-    model = train_model(model, config['learning'], train_loader, val_loader, discriminator=discriminator, comet_params=log_dict, comet_tags=log_labels)
+            build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, \
+                                    use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels)
+
+    else:
+        logging.info(f'single shot {args.model_type} configuration is active.')
+        model_config = config['model_architecture'][args.model_type]
+        train_config = config['learning']
+        discriminator_config = config['model_architecture']['discriminator'] if args.discriminator else None
+
+        build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, \
+                            use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels)
 
     if os.name == 'nt':
         deinit()      # colorama restore

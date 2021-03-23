@@ -60,9 +60,9 @@ class HiveModelFactory():
 
     def _get_conv_vae_model(config, input_shape):
         """ Function for building Convolutional Variational Autoencoder """
-        encoder_conv_sizes = config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_conv_sizes = config.get('encoder_feature_maps', [128, 64, 32, 16])
         encoder_mlp_sizes = config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
-        decoder_conv_sizes = config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_conv_sizes = config.get('decoder_feature_maps', [16, 32, 64, 128])
         decoder_mlp_sizes = config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
         latent_size = config.get('latent_size', 16)
         
@@ -80,9 +80,9 @@ class HiveModelFactory():
 
     def _get_conv_cvae_model(config, input_shape):
         """ Function for building Convolutional Contrastive Variational Autoencoder """
-        encoder_conv_sizes = config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_conv_sizes = config.get('encoder_feature_maps', [128, 64, 32, 16])
         encoder_mlp_sizes = config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
-        decoder_conv_sizes = config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_conv_sizes = config.get('decoder_feature_maps', [16, 32, 64, 128])
         decoder_mlp_sizes = config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
         latent_size = config.get('latent_size', 16)
 
@@ -115,9 +115,9 @@ class HiveModelFactory():
 
     def _get_conv_ae_model(config, input_shape):
         """ Function for building convolutional autoencoder """
-        encoder_conv_sizes = config.get('encoder_no_feature_maps', [128, 64, 32, 16])
+        encoder_conv_sizes = config.get('encoder_feature_maps', [128, 64, 32, 16])
         encoder_mlp_sizes = config.get('encoder_mlp_layer_sizes', [1024, 512, 128])
-        decoder_conv_sizes = config.get('decoder_no_feature_maps', [16, 32, 64, 128])
+        decoder_conv_sizes = config.get('decoder_feature_maps', [16, 32, 64, 128])
         decoder_mlp_sizes = config.get('decoder_mlp_layer_sizes', [128, 512, 1024])
         latent_size = config.get('latent_size', 16)
 

@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import math
+import random
 
 from comet_ml import Experiment
 
@@ -16,6 +17,118 @@ from utils.models.discriminator import discriminator_loss
 from utils.models.ae import ae_loss_fun
 from utils.models.cvae import cvae_loss
 
+
+def generate_discriminator_model_config(range_config)
+    """ Function for generating discriminator model config """
+    config = {
+        layers = []
+    }
+
+    number_of_fc_layers = random.randint(range_config['layers_number_range'][0], range_config['layers_number_range'][1])
+
+    fc_layers = []
+    fc_layer = range_config['layer_size_range'][1]
+    for layer_no in range(number_of_fc_layers):
+        fc_layer = random.randint(range_config['layer_size_range'][0], range_config['layer_size_range'][1])
+        fc_layers.append(fc_layer)
+
+    config['layers'] = fc_layers
+
+    return config
+
+def generate_train_infos(range_config):
+    """ Function for generating learning config. Note that here we generate partial
+        train config. Result of this function should be merged with real config e.g. config['learning'] """
+    config = {
+        batch_size = 0,
+        learning_rate = 0,
+        batch_normalize = None,
+        batch_standarize = None,
+        discriminator = {
+            alpha = 0,
+            learning_rate = 0
+        }
+    }
+
+    # setup random generator
+    random.seed()
+
+    config['batch_size'] = random.randint(range_config['batch_size_range'][0], range_config['batch_size_range'][1])
+    config['learning_rate'] = 1/(10*random.randint(range_config['learning_rate_order_range'][0], range_config['learning_rate_order_range'][1]))
+    config['batch_normalize'] = random.choice([True, False])
+    config['batch_standarize'] = random.choice([True, False])
+    config['discriminator']['alpha'] = random.uniform(range_config['discriminator']['alpha_range'][0], range_config['discriminator']['alpha_range'][1])
+    config['discriminator']['alpha'] = 1/(10*random.randint(range_config['discriminator']['learning_rate_order_range'][0], \
+                                                            range_config['discriminator']['learning_rate_order_range'][1]))
+
+    return config
+
+
+def generate_fc_model_config(range_config):
+    """ Fucntion for generating fully connected model config """
+    config = {
+        'encoder_layer_sizes': [],
+        'decoder_layer_sizes': [],
+        'latent_size': 0
+    }
+
+    # setup random generator
+    random.seed()
+
+    number_of_fc_layers = random.randint(range_config['layers_number_range'][0], range_config['layers_number_range'][1])
+
+    fc_layers = []
+    fc_layer = range_config['layer_size_range'][1]
+    for layer_no in range(number_of_fc_layers):
+        fc_layer = random.randint(range_config['layer_size_range'][0], range_config['layer_size_range'][1])
+        fc_layers.append(fc_layer)
+
+    latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][0])
+
+    config['encoder_layer_sizes'] = fc_layers
+    config['decoder_layer_sizes'] = fc_layers[::-1]
+    config['latent_size'] = latent_size
+
+    return config
+
+
+def generate_conv_model_config(range_config):
+    """ Function for generating convolutional model config """
+    config = {
+        'encoder_feature_maps': [],
+        'encoder_mlp_layer_sizes': [],
+        'decoder_feature_maps': [],
+        'decoder_mlp_layer_sizes': [],
+        'latent_size': 0
+    }
+    
+    # setup random generator
+    random.seed()
+
+    number_of_conv_layers = random.randint(range_config['conv_layers_number_range'][0], range_config['conv_layers_number_range'][1])
+    number_of_mlp_layers = random.randint(range_config['mlp_layers_number_range'][0], range_config['mlp_layers_number_range'][1])
+
+    conv_feature_map = []
+    conv_size = range_config['conv_layers_number_range'][1]
+    for layer in range(number_of_conv_layers):
+        conv_size = random.randint(range_config['conv_layers_number_range'][0], conv_size)
+        conv_feature_map.append(conv_size)
+
+    mlp_layer_sizes = []
+    layer_size = range_config['mlp_layers_number_range'][1]
+    for layer in range(number_of_mlp_layers):
+        layer_size = random.randint(range_config['conv_layers_number_range'][0], layer_size)
+        mlp_layer_sizes.append(layer_size)
+    
+    latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][0])
+    
+    config['encoder_feature_maps'] = conv_feature_map
+    config['decoder_feature_maps'] = conv_feature_map[::-1]
+    config['encoder_mlp_layer_sizes'] = mlp_layer_sizes
+    config['decoder_mlp_layer_sizes'] = mlp_layer_sizes[::-1]
+    config['latent_size'] = latent_size
+
+    return config
 
 
 def permutate_latent(latents_batch, inplace=False):
