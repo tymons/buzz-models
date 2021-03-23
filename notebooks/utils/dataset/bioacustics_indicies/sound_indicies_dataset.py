@@ -129,8 +129,6 @@ class SoundIndiciesDataset(Dataset):
             self.SoundIndicator.BI:     get_BI,
         }.get(self.indicator_type)()
 
-        print(f'feature: {feature}')
-
         return (feature, label)
     
     def __len__(self):
