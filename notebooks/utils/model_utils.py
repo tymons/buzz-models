@@ -13,6 +13,7 @@ from torch import nn
 
 from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.vae import vae_loss
+from utils.models.conv_ae import conv_mlp_layer_shape
 from utils.models.discriminator import discriminator_loss
 from utils.models.ae import ae_loss_fun
 from utils.models.cvae import cvae_loss
@@ -81,10 +82,10 @@ def generate_fc_model_config(range_config):
     number_of_fc_layers = random.randint(range_config['layers_number_range'][0], range_config['layers_number_range'][1])
 
     fc_layers = []
-    fc_layer = range_config['layer_size_range'][1]
+    fc_max_size = range_config['layer_size_range'][1]
     for layer_no in range(number_of_fc_layers):
-        fc_layer = random.randint(range_config['layer_size_range'][0], range_config['layer_size_range'][1])
-        fc_layers.append(fc_layer)
+        fc_max_size = random.randint(range_config['layer_size_range'][0], fc_max_size)
+        fc_layers.append(fc_max_size)
     fc_layers = list(dict.fromkeys(fc_layers)) # remove duplicates
 
     latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][1])
@@ -96,7 +97,7 @@ def generate_fc_model_config(range_config):
     return config
 
 
-def generate_conv_model_config(range_config):
+def generate_conv_model_config(range_config, input_shape):
     """ Function for generating convolutional model config """
     config = {
         'encoder_feature_maps': [],
@@ -109,23 +110,34 @@ def generate_conv_model_config(range_config):
     # setup random generator
     random.seed()
 
-    number_of_conv_layers = random.randint(range_config['conv_layers_number_range'][0], range_config['conv_layers_number_range'][1])
-    number_of_mlp_layers = random.randint(range_config['mlp_layers_number_range'][0], range_config['mlp_layers_number_range'][1])
-
+    # convolutional layers generation
     conv_feature_map = []
-    conv_size = range_config['conv_features_range'][1]
-    for layer in range(number_of_conv_layers):
-        conv_size = random.randint(range_config['conv_features_range'][0], conv_size)
-        conv_feature_map.append(conv_size)
-    conv_feature_map = list(dict.fromkeys(conv_feature_map)) # remove duplicates
+    logging.debug()
+    while True:
+        number_of_conv_layers = random.randint(range_config['conv_layers_number_range'][0], range_config['conv_layers_number_range'][1])
+        conv_max_size = range_config['conv_features_range'][1]
+        for layer in range(number_of_conv_layers):
+            conv_max_size = random.randint(range_config['conv_features_range'][0], conv_max_size)
+            conv_feature_map.append(conv_max_size)
+        conv_feature_map = list(dict.fromkeys(conv_feature_map)) # remove duplicates
 
+        # check if we don't have too many layers for given input shape
+        if all(conv_mlp_layer_shape(input_shape, conv_feature_map, kernel=3, stride=1, padding=1, max_pool=(2,2))):
+            break
+        else:
+            logging.warning('too many layers for convolutional nn - try to modify "conv_layers_number_range" from random'
+                            ' search config')
+
+    # fully connected layers generation
     mlp_layer_sizes = []
+    number_of_mlp_layers = random.randint(range_config['mlp_layers_number_range'][0], range_config['mlp_layers_number_range'][1])    
     layer_size = range_config['mlp_layer_size_range'][1]
     for layer in range(number_of_mlp_layers):
         layer_size = random.randint(range_config['mlp_layer_size_range'][0], layer_size)
         mlp_layer_sizes.append(layer_size)
     mlp_layer_sizes = list(dict.fromkeys(mlp_layer_sizes)) # remove duplicates
 
+    # latent generation
     latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][1])
     
     config['encoder_feature_maps'] = conv_feature_map

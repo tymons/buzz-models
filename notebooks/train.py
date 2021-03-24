@@ -130,7 +130,7 @@ def main():
         for sample_no in range(args.random_search):
             # generate model config 
             if args.model_type.startswith('conv'):
-                model_config = m.generate_conv_model_config(config['random_search']['model']['conv'])
+                model_config = m.generate_conv_model_config(config['random_search']['model']['conv'], train_loader.dataset[0][0][0].squeeze().shape)
             elif args.model_type != 'discriminator':
                 model_config = m.generate_fc_model_config(config['random_search']['model']['fc'])
             else:
