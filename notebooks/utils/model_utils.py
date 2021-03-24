@@ -18,18 +18,21 @@ from utils.models.ae import ae_loss_fun
 from utils.models.cvae import cvae_loss
 
 
-def generate_discriminator_model_config(range_config)
+def generate_discriminator_model_config(range_config):
     """ Function for generating discriminator model config """
     config = {
-        layers = []
+        'layers': []
     }
+    fc_layers = []
+
+    # setup random generator
+    random.seed()
 
     number_of_fc_layers = random.randint(range_config['layers_number_range'][0], range_config['layers_number_range'][1])
-
-    fc_layers = []
+    
     fc_layer = range_config['layer_size_range'][1]
     for layer_no in range(number_of_fc_layers):
-        fc_layer = random.randint(range_config['layer_size_range'][0], range_config['layer_size_range'][1])
+        fc_layer = random.randint(range_config['layer_size_range'][0], fc_layer)
         fc_layers.append(fc_layer)
 
     config['layers'] = fc_layers
@@ -40,13 +43,13 @@ def generate_train_infos(range_config):
     """ Function for generating learning config. Note that here we generate partial
         train config. Result of this function should be merged with real config e.g. config['learning'] """
     config = {
-        batch_size = 0,
-        learning_rate = 0,
-        batch_normalize = None,
-        batch_standarize = None,
-        discriminator = {
-            alpha = 0,
-            learning_rate = 0
+        'batch_size': 0,
+        'learning_rate': 0,
+        'batch_normalize': None,
+        'batch_standarize': None,
+        'discriminator': {
+            'alpha': 0,
+            'learning_rate': 0
         }
     }
 
@@ -82,8 +85,9 @@ def generate_fc_model_config(range_config):
     for layer_no in range(number_of_fc_layers):
         fc_layer = random.randint(range_config['layer_size_range'][0], range_config['layer_size_range'][1])
         fc_layers.append(fc_layer)
+    fc_layers = list(dict.fromkeys(fc_layers)) # remove duplicates
 
-    latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][0])
+    latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][1])
 
     config['encoder_layer_sizes'] = fc_layers
     config['decoder_layer_sizes'] = fc_layers[::-1]
@@ -109,18 +113,20 @@ def generate_conv_model_config(range_config):
     number_of_mlp_layers = random.randint(range_config['mlp_layers_number_range'][0], range_config['mlp_layers_number_range'][1])
 
     conv_feature_map = []
-    conv_size = range_config['conv_layers_number_range'][1]
+    conv_size = range_config['conv_features_range'][1]
     for layer in range(number_of_conv_layers):
-        conv_size = random.randint(range_config['conv_layers_number_range'][0], conv_size)
+        conv_size = random.randint(range_config['conv_features_range'][0], conv_size)
         conv_feature_map.append(conv_size)
+    conv_feature_map = list(dict.fromkeys(conv_feature_map)) # remove duplicates
 
     mlp_layer_sizes = []
-    layer_size = range_config['mlp_layers_number_range'][1]
+    layer_size = range_config['mlp_layer_size_range'][1]
     for layer in range(number_of_mlp_layers):
-        layer_size = random.randint(range_config['conv_layers_number_range'][0], layer_size)
+        layer_size = random.randint(range_config['mlp_layer_size_range'][0], layer_size)
         mlp_layer_sizes.append(layer_size)
-    
-    latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][0])
+    mlp_layer_sizes = list(dict.fromkeys(mlp_layer_sizes)) # remove duplicates
+
+    latent_size = random.randint(range_config['latent_size_range'][0], range_config['latent_size_range'][1])
     
     config['encoder_feature_maps'] = conv_feature_map
     config['decoder_feature_maps'] = conv_feature_map[::-1]

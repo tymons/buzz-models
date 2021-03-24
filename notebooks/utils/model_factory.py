@@ -1,8 +1,8 @@
 import torch
 import logging
+import traceback
 
 from torchsummary import summary
-from colorama import Back
 
 from utils.models.vae import VAE
 from utils.models.cvae import cVAE
@@ -18,11 +18,11 @@ def model_check(model, input_shape):
     try:
         summary(model.to(device), input_shape)
         logging.debug(f'model check success! {model}')
+        return model
     except Exception as e:
-        logging.error(Back.RED + 'model self-check failure: ' + str(e))
-        raise Exception('model self-check failure')
-
-    return model
+        logging.error('model self-check failure!')
+        logging.error(traceback.print_exc())
+        return None
 
 class HiveModelFactory():
     """ Factory for ml models """

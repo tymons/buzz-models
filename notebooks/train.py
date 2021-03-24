@@ -7,13 +7,13 @@ import json
 import ast
 import comet_ml
 import torch
-
-from colorama import init, deinit, Back
+import utils.model_utils as m
+import traceback
 
 from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_datalist
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
-from utils.model_utils import train_model
+
 from utils.data_utils import filter_strlist
 
 def truncate_lists_to_smaller_size(arg1, arg2):
@@ -32,16 +32,24 @@ def build_and_train_model(model_type, model_config, train_config, train_loader, 
 
     model, model_params = HiveModelFactory.build_model(model_type, model_config, data_shape)
 
-    discriminator, disc_params, discirminator_alpha  = (None, {}, None)
-    if use_discriminator is True and discirminator_config:
-        # if we have discirminator arg build that model
-        discriminator, disc_params = HiveModelFactory.build_model('discriminator', discirminator_config, tuple((model_config['latent_size'] * 2, )))
-        discirminator_alpha = train_config['discriminator'].get('alpha', 0.1)
-        comet_tags.append('discriminator')
+    if model:
+        discriminator, disc_params, discirminator_alpha  = (None, {}, None)
+        if use_discriminator is True and discirminator_config:
+            # if we have discirminator arg build that model
+            discriminator, disc_params = HiveModelFactory.build_model('discriminator', discirminator_config, tuple((model_config['latent_size'] * 2, )))
+            discirminator_alpha = train_config['discriminator'].get('alpha', 0.1)
+            comet_tags.append('discriminator')
 
-    # train model
-    log_dict = {**model_params, **disc_params}
-    model = train_model(model, train_config, train_loader, val_loader, discriminator=discriminator, comet_params=log_dict, comet_tags=comet_tags)
+        # train model
+        log_dict = {**model_params, **disc_params}
+        try:
+            model = m.train_model(model, train_config, train_loader, val_loader, discriminator=discriminator, comet_params=log_dict, comet_tags=comet_tags)
+        except Exception:
+            logging.error('model train fail!')
+            logging.error(traceback.print_exc())
+    else:
+        logging.error('cannot build ml model.')
+
     return model
 
 
@@ -61,14 +69,11 @@ def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, 
     # get sound filenames from specified folders
     sound_filenames = get_valid_sounds_datalist(checked_folders, valid_sounds_filename)
 
-    assert (len(sound_filenames) > 0), Back.RED + "we cannot read any data from specified folder!"
+    assert (len(sound_filenames) > 0), "we cannot read any data from specified folder!"
 
     return sound_filenames, list(labels)
 
 def main():
-    if os.name == 'nt':
-        init()      # colorama init stdout and stderr as win32 system calls
-
     parser = argparse.ArgumentParser(description='Process some integers.')
     # positional arguments
     parser.add_argument('model_type', metavar='model_type', type=str, help='Model Type [vae, cvae, contrastive_vae, contrastive_cvae, ae, cae]')
@@ -80,7 +85,7 @@ def main():
     parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
-    parser.add_argument('--random_serach', type=int, help='number of tries to find best architecture')
+    parser.add_argument('--random_search', type=int, help='number of tries to find best architecture')
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
     parser.add_argument('--no-discriminator', dest='discriminator', action='store_false')
     parser.set_defaults(discriminator=False)
@@ -120,20 +125,20 @@ def main():
                                                         config['features'], config['learning'].get('batch_size', 32),
                                                         background_filenames=background_filenames, background_labels=background_labels)
 
-    if args.random_serach:
+    if args.random_search:
         logging.info(f'random search architecture configuration for model {args.model_type} is active.')
-        for sample_no in range(args.random_serach):
+        for sample_no in range(args.random_search):
             # generate model config 
             if args.model_type.startswith('conv'):
-                model_config = generate_conv_model_config(config['random_search']['model']['conv'])
-            elif args.model_type is not 'discriminator':
-                model_config = generate_fc_model_config(config['random_search']['model']['fc'])
+                model_config = m.generate_conv_model_config(config['random_search']['model']['conv'])
+            elif args.model_type != 'discriminator':
+                model_config = m.generate_fc_model_config(config['random_search']['model']['fc'])
             else:
                 raise ValueError(f'model {args.model_type} not supported for random search!')
             # generate random train config and merge with existing 
-            train_config = {**generate_train_infos(config['random_search']['learning']), **config['learning']}
+            train_config = {**m.generate_train_infos(config['random_search']['learning']), **config['learning']}
             # generate random discriminator config if needed
-            discriminator_config = generate_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
+            discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
             build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, \
                                     use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels)
@@ -146,9 +151,6 @@ def main():
 
         build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, \
                             use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels)
-
-    if os.name == 'nt':
-        deinit()      # colorama restore
 
 if __name__ == "__main__":
     main()
