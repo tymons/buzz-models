@@ -126,3 +126,4 @@ dmypy.json
 measurements/
 *.npy
 .comet.config
+notebooks/output/
