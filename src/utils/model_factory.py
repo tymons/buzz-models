@@ -12,6 +12,7 @@ from utils.models.ae import Autoencoder
 from utils.models.conv_ae import ConvolutionalAE
 from utils.models.discriminator import Discriminator
 
+
 def model_check(model, input_shape):
     """ Function for model check """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,9 +25,9 @@ def model_check(model, input_shape):
         logging.error(traceback.print_exc())
         return None
 
+
 class HiveModelFactory():
     """ Factory for ml models """
-    
     def _get_vae_model(config, input_shape):
         """ Function for building Variational Autoencoder """
         encoder_layer_sizes = config.get('encoder_layer_sizes', [256, 32, 16])

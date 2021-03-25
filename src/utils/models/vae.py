@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
 
-from tqdm import tqdm
 from torch import nn
+
 from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.ae import Encoder, Decoder
 

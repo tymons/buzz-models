@@ -1,14 +1,7 @@
-import os
-import torch
-import random 
 import numpy as np
 import librosa
 
-from math import sqrt
 from torch.utils.data import Dataset
-from scipy.io import wavfile
-from sklearn.preprocessing import MinMaxScaler
-
 from utils.dataset.sound import Sound
 
 class MfccDataset(Dataset, Sound):

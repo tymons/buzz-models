@@ -1,10 +1,7 @@
 import torch 
 
 from torch import nn
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from tqdm import tqdm
 
-from utils.data_utils import batch_normalize, batch_standarize
 from utils.models.ae import Decoder, Encoder
 from utils.models.vae import reparameterize
 

@@ -4,7 +4,6 @@ import os
 import argparse
 import logging
 import json
-import ast
 import comet_ml
 import torch
 import utils.model_utils as m
@@ -48,7 +47,9 @@ def build_and_train_model(model_type, model_config, train_config, train_loader, 
 def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, data_check_reinit: bool):
     """ Function for getting soundlist from root folder """
     if data_check_reinit:
-        checked_folders = create_valid_sounds_datalist(root_folder, valid_sounds_filename, "smrpiclient")
+        prefix = "smrpiclient" # TODO: to be parametrized
+        logging.info(f'checking all sound files from folders with "{prefix}" prefix, it may take a while...')
+        checked_folders = create_valid_sounds_datalist(root_folder, valid_sounds_filename, prefix)
     else: 
         checked_folders = [os.path.join(root_folder, "smrpiclient0_10082020-19012021"),       
                 os.path.join(root_folder, "smrpiclient3_10082020-19012021"), 
@@ -74,13 +75,14 @@ def main():
     # optional arguments
     parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
     parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
-    parser.add_argument("--check_data", type=bool, default=False, help="should check sound data")
+    parser.add_argument('--check-data', dest='check_data', action='store_true')
     parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
     parser.add_argument("--config_file", type=str)
     parser.add_argument('--random_search', type=int, help='number of tries to find best architecture')
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
     parser.add_argument('--no-discriminator', dest='discriminator', action='store_false')
     parser.set_defaults(discriminator=False)
+    parser.set_defaults(check_data=False)
 
     args = parser.parse_args()
 

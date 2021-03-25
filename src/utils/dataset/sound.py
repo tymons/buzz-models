@@ -1,6 +1,8 @@
 import os
 import numpy as np
+
 from scipy.io import wavfile
+
 
 def pcm2float(sig, dtype='float64'):
     """Convert PCM signal to floating point with a range from -1 to 1.

@@ -61,6 +61,7 @@ class SoundFeatureFactory():
         logging.info(f'building sound bio indicies dataset with params: type({indicator_type}), config({config})')
         return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **config)
 
+
     @classmethod
     def build_dataloaders(cls, input_type, sound_filenames, labels, features_params_dict, batch_size, ratio=0.15, num_workers=4,
                             background_filenames=[], background_labels=[]):
