@@ -14,15 +14,7 @@ from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_data
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
 
-from utils.data_utils import filter_strlist
-
-def truncate_lists_to_smaller_size(arg1, arg2):
-    if len(arg1) > len(arg2):
-        arg1 = arg1[:len(arg2)]
-    else:
-        arg2 = arg2[:len(arg1)]
-
-    return arg1, arg2
+from utils.data_utils import filter_strlist, truncate_lists_to_smaller_size
 
 
 def build_and_train_model(model_type, model_config, train_config, train_loader, val_loader, use_discriminator=False, discirminator_config=None, comet_tags=[]):

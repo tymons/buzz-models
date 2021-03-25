@@ -342,3 +342,13 @@ def adjust_matrix(matrix, *lengths):
             matrix = np.swapaxes(matrix, i, 0)
 
     return matrix
+
+def truncate_lists_to_smaller_size(arg1, arg2):
+    """ Function for truncating two lists to smaller size. 
+    Note that there possibly should be better way to do this operation. """
+    if len(arg1) > len(arg2):
+        arg1 = arg1[:len(arg2)]
+    else:
+        arg2 = arg2[:len(arg1)]
+
+    return arg1, arg2
