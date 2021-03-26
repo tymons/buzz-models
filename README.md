@@ -35,6 +35,6 @@ user should specify target and background data through options
 ```bash
 python train.py vae periodogram ..\\measurements\\smartulav2 --config_file=example_config.json --target smrpiclient6 --background smrpiclient3 smrpiclient7
 ```
-also there is option to use discriminator in contrastive training by using ```--discriminator``` or ```--no-discriminator``` option
+also there is option to use discriminator in contrastive training by using ```--discriminator``` option
 
 
