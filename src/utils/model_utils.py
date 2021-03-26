@@ -347,10 +347,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                                                                                 discriminator_optimizer=optimizer_discriminator)
         elif patience_counter >= learning_params['patience'] or val_loss is math.isnan(val_loss):
             logging.info("early stopping!")
-            epoch, _ = _model_load(model, optimizer, checkpoint_full_path, discriminator=discriminator, \
-                                                                 discriminator_optimizer=optimizer_discriminator)
-            logging.info(f"=> loaded model based on {checkpoint_full_path} checkpoint file, saved on {epoch} epoch.")
-            return model
+            break
         else:
             patience_counter = patience_counter + 1
 
@@ -358,5 +355,9 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         train_loss = []
         val_loss = []
     
+    
+    epoch, _ = _model_load(model, optimizer, checkpoint_full_path, discriminator=discriminator, \
+                                                            discriminator_optimizer=optimizer_discriminator)
+    logging.info(f"=> loaded model based on {checkpoint_full_path} checkpoint file, saved on {epoch} epoch.")
     return model
 
