@@ -176,9 +176,31 @@ def setup_comet_ml_experiment(project_name, experiment_name, parameters, tags):
     experiment.add_tags(tags)
     return experiment
 
+def _model_save(model, optimizer, loss, epoch, checkpoint_full_path, discriminator=None, discriminator_optimizer=None):
+    """ Function for saving model on disc """
+    torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': loss,
+                'discriminator_state_dict': discriminator.state_dict() if discriminator else None,
+                'discriminator_optimizer_state_dict': discriminator_optimizer.state_dict() if discriminator_optimizer else None
+                }, checkpoint_full_path)
+
+def _model_load(model, optimizer, checkpoint_full_path, discriminator=None, discriminator_optimizer=None):
+    """ Function for loading checkpoint """
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
+    if discriminator and discriminator_optimizer:
+        discriminator.load_state_dict(checkpoint['discriminator_state_dict'])
+        discriminator_optimizer.load_state_dict(checkpoint['discriminator_optimizer_state_dict'])
+
+    return epoch, loss
 
 def train_model(model, learning_params, train_loader, val_loader, discriminator=None,
-                    comet_params={}, comet_tags=[]):
+                    comet_params={}, comet_tags=[], model_output_folder="output"):
     """ Main function for training model 
     
     Parameters:
@@ -224,7 +246,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     # best validation score
     best_val_loss = -1
     # model checkpoint filename
-    checkpoint_filename = f'output{os.sep}models{os.sep}{experiment.get_name()}-checkpoint.pth'
+    checkpoint_file = f'{experiment.get_name()}-checkpoint.pth'
+    checkpoint_full_path = os.path.join(model_output_folder, checkpoint_file)
 
     # pass model to gpu if is available
     model.to(device)
@@ -320,11 +343,14 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             logging.info("checkpoint!")
             best_val_loss = val_loss
             patience_counter = 0
-            torch.save(model.state_dict(), checkpoint_filename)
+            _model_save(model, optimizer, loss, epoch, checkpoint_full_path, discriminator=discriminator, \
+                                                                                discriminator_optimizer=optimizer_discriminator)
         elif patience_counter >= learning_params['patience'] or val_loss is math.isnan(val_loss):
-            logging.info("early stopping.")
-            logging.info(f"=> loading checkpoint {checkpoint_filename}")
-            return checkpoint_filename
+            logging.info("early stopping!")
+            epoch, _ = _model_load(model, optimizer, checkpoint_full_path, discriminator=discriminator, \
+                                                                 discriminator_optimizer=optimizer_discriminator)
+            logging.info(f"=> loaded model based on {checkpoint_full_path} checkpoint file, saved on {epoch} epoch.")
+            return model
         else:
             patience_counter = patience_counter + 1
 

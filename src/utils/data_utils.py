@@ -82,9 +82,9 @@ def get_valid_sounds_datalist(folder_list, validfile_filename):
         summary_file = os.path.join(folder, validfile_filename)
         if os.path.isfile(summary_file):
             with open(summary_file, 'r') as f:
-                sound_filenames += list(map(lambda x: folder + os.sep + x, f.read().splitlines()))
+                sound_filenames += list(map(lambda x: os.path.join(folder, x), f.read().splitlines()))
         else:
-            logging.warning(f'{valid_filename} for folder {folder} does not exists! skipping')
+            logging.warning(f'{validfile_filename} for folder {folder} does not exists! skipping')
 
     return sound_filenames
 
