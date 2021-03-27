@@ -13,11 +13,11 @@ from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_data
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
 
-from utils.data_utils import filter_strlist, truncate_lists_to_smaller_size
+from utils.data_utils import filter_strlist, truncate_lists_to_smaller_size, read_comet_api_key
 
 
 def build_and_train_model(model_type, model_config, train_config, train_loader, val_loader,  model_output_folder,
-                             use_discriminator=False, discirminator_config=None, comet_tags=[]):
+                             use_discriminator=False, discirminator_config=None, comet_tags=[], comet_api_key=None):
     """ function for building and training model """
     data_shape = train_loader.dataset[0][0][0].squeeze().shape
     logging.info(f'building model with data input shape of {data_shape}')
@@ -36,7 +36,7 @@ def build_and_train_model(model_type, model_config, train_config, train_loader, 
         log_dict = {**model_params, **disc_params}
         try:
             model = m.train_model(model, train_config, train_loader, val_loader, discriminator=discriminator, \
-                                    comet_params=log_dict, comet_tags=comet_tags, model_output_folder=model_output_folder)
+                                    comet_params=log_dict, comet_tags=comet_tags, model_output_folder=model_output_folder, comet_api_key=comet_api_key)
         except Exception:
             logging.error('model train fail!')
             logging.error(traceback.print_exc())
@@ -83,6 +83,7 @@ def main():
     parser.add_argument('--random_search', type=int, help='number of tries to find best architecture')
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
     parser.add_argument('--model_output', type=str, default="output/models", help="folder for model output")
+    parser.add_argument("--comet_config", default='config.json', type=str)
     parser.set_defaults(discriminator=False)
     parser.set_defaults(check_data=False)
 
@@ -121,6 +122,9 @@ def main():
                                                         config['features'], config['learning'].get('batch_size', 32),
                                                         background_filenames=background_filenames, background_labels=background_labels)
 
+    # read comet ml api key from specified file
+    comet_api_key = read_comet_api_key(args.comet_config) if args.comet_config else None
+
     if args.random_search:
         logging.info(f'random search architecture configuration for model {args.model_type} is active.')
         for sample_no in range(args.random_search):
@@ -137,7 +141,7 @@ def main():
             discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
             build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, args.model_output,
-                                    use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels)
+                                    use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels, comet_api_key=comet_api_key)
 
     else:
         logging.info(f'single shot {args.model_type} configuration is active.')
@@ -146,7 +150,7 @@ def main():
         discriminator_config = config['model_architecture']['discriminator'] if args.discriminator else None
 
         build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, args.model_output,
-                            use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels)
+                            use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels, comet_api_key=comet_api_key)
 
 if __name__ == "__main__":
     main()
