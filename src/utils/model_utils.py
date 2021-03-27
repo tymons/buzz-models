@@ -168,9 +168,9 @@ def permutate_latent(latents_batch, inplace=False):
     return data
 
 
-def setup_comet_ml_experiment(project_name, experiment_name, parameters, tags):
+def setup_comet_ml_experiment(api_key, project_name, experiment_name, parameters, tags):
     """ Function for setting up comet ml experiment """
-    experiment = Experiment(project_name=project_name, auto_metric_logging=False)
+    experiment = Experiment(api_key=api_key, project_name=project_name, auto_metric_logging=False)
     experiment.set_name(experiment_name)
     experiment.log_parameters(parameters)
     experiment.add_tags(tags)
@@ -201,7 +201,7 @@ def _model_load(model, optimizer, checkpoint_full_path, discriminator=None, disc
     return epoch, loss
 
 def train_model(model, learning_params, train_loader, val_loader, discriminator=None,
-                    comet_params={}, comet_tags=[], model_output_folder="output"):
+                    comet_params={}, comet_tags=[], model_output_folder="output", comet_api_key=None):
     """ Main function for training model 
     
     Parameters:
@@ -212,6 +212,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         discriminator (nn.Module): discriminator for contrastive learning
         comet_params (dict): parameters which will be uploaded to comet ml
         comet_tags (list): list of tags which should be uploaded to comet ml experiment
+        model_output_folder (str): folder where output models will be saved
+        comet_api_key (str): api key for comet ml if is None .comet.config should be available in src directory
 
     Returns
         model (torch.nn.Module): trained model
@@ -231,7 +233,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
-    experiment = setup_comet_ml_experiment(f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
+    experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
                                             parameters=dict(learning_params, **comet_params), tags=comet_tags)
 
     # fixed adam optimizer with hyperparameters

@@ -168,3 +168,10 @@ def truncate_lists_to_smaller_size(arg1, arg2):
         arg2 = arg2[:len(arg1)]
 
     return arg1, arg2
+
+def read_comet_api_key(config_file_fullpath):
+    """ Function for reading comet api key form file """
+    with open(config_file_fullpath, 'r') as f:
+        api_key = [b.split('=')[-1] for b in f.read().splitlines() if b.startswith('api_key')][0]
+    
+    return api_key
