@@ -122,8 +122,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-<<<<<<< HEAD
-=======
 
 measurements/
 *.npy
@@ -131,4 +129,3 @@ measurements/
 src/output/
 .vscode
 
->>>>>>> develop
