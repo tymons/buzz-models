@@ -9,6 +9,7 @@ import torch
 import utils.model_utils as m
 import traceback
 
+from datetime import datetime
 from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_datalist
 from utils.feature_factory import SoundFeatureFactory
 from utils.model_factory import HiveModelFactory
@@ -78,7 +79,7 @@ def main():
     parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
     parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
     parser.add_argument('--check-data', dest='check_data', action='store_true')
-    parser.add_argument("--log_file", type=str, default='debug.log', help="name of debug file")
+    parser.add_argument("--log_folder", type=str, default='.', help="name of debug file")
     parser.add_argument("--config_file", default='config.json', type=str)
     parser.add_argument('--random_search', type=int, help='number of tries to find best architecture')
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
@@ -99,7 +100,7 @@ def main():
         level=logging.DEBUG,
         format='%(asctime)s [%(levelname)s] %(message)s',
         handlers=[
-            logging.FileHandler(args.log_file),
+            logging.FileHandler(os.path.join(args.log_folder, f"{args.model_type}-{args.feature}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{logging._levelToName[logging.DEBUG]}.log")),
             logging.StreamHandler()
         ]
     )
