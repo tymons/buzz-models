@@ -69,6 +69,7 @@ def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, 
 
     return sound_filenames, list(labels)
 
+
 def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     # positional arguments
