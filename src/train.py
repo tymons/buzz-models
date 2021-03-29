@@ -139,7 +139,7 @@ def main():
             else:
                 raise ValueError(f'model {args.model_type} not supported for random search!')
             # generate random train config and merge with existing 
-            train_config = {**m.generate_train_infos(config['random_search']['learning']), **config['learning']}
+            train_config = {**config['learning'], **m.generate_train_infos(config['random_search']['learning'])}
             # generate random discriminator config if needed
             discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
