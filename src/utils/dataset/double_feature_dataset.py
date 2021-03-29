@@ -16,6 +16,10 @@ class DoubleFeatureDataset(Dataset):
 
         assert len(target) == len(background)
 
+    def get_params(self):
+        """ Function for returning params """
+        return self.target.get_params()
+
     def __getitem__(self, idx):
         # function for returning target, background pair
         target_sample, label = self.target.__getitem__(idx)

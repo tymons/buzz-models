@@ -12,6 +12,14 @@ class MfccDataset(Dataset, Sound):
         self.nfft = nfft
         self.hop_len = hop_len
 
+    def get_params(self):
+        """ Function for returning params """
+        return {
+            'number_of_mels': self.n_mels,
+            'nfft': self.nfft,
+            'hop_len': self.hop_len
+        }
+
     def __getitem__(self, idx):
         # read sound samples and label
         sound_samples, sampling_rate, label = Sound.read_sound(self, idx)

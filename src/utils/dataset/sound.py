@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from scipy.io import wavfile
-
+from abc import ABC, abstractmethod
 
 def pcm2float(sig, dtype='float64'):
     """Convert PCM signal to floating point with a range from -1 to 1.
@@ -60,10 +60,14 @@ def read_samples(filename, raw=False):
 
     return sound_samples, sampling_rate
 
-class Sound():
+class Sound(ABC):
     def __init__(self, filenames, labels):
         self.filenames = filenames
         self.labels = labels
+
+    @abstractmethod
+    def get_params(self):
+        pass
 
     def read_sound(self, idx, raw=False):
         """ Method for reading sound

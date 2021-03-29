@@ -30,6 +30,14 @@ class MelSpectrogramDataset(Dataset, Sound):
         self.mels = mels
         self.truncate = truncate_power_two
 
+    def get_params(self):
+        """ Function for returning params """
+        return {
+            'number_of_mels': self.mels,
+            'nfft': self.nfft,
+            'hop_len': self.hop_len
+        }
+
     def __getitem__(self, idx):
         # read sound samples from file
         sound_samples, sampling_rate, label = Sound.read_sound(self, idx)

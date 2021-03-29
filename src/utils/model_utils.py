@@ -233,8 +233,9 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
+    learning_params_log = {f"LEARNING_{key}": val for key, val in learning_params.items()}
     experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
-                                            parameters=dict(learning_params, **comet_params), tags=comet_tags)
+                                            parameters={**learning_params_log, **comet_params}, tags=comet_tags)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
