@@ -112,7 +112,7 @@ def generate_conv_model_config(range_config, input_shape):
 
     # convolutional layers generation
     conv_feature_map = []
-    logging.debug()
+
     while True:
         number_of_conv_layers = random.randint(range_config['conv_layers_number_range'][0], range_config['conv_layers_number_range'][1])
         conv_max_size = range_config['conv_features_range'][1]
