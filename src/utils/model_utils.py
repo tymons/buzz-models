@@ -46,8 +46,6 @@ def generate_train_infos(range_config):
     config = {
         'batch_size': 0,
         'learning_rate': 0,
-        'batch_normalize': None,
-        'batch_standarize': None,
         'discriminator': {
             'alpha': 0,
             'learning_rate': 0
@@ -59,8 +57,6 @@ def generate_train_infos(range_config):
 
     config['batch_size'] = random.randint(range_config['batch_size_range'][0], range_config['batch_size_range'][1])
     config['learning_rate'] = 1/(10**random.randint(range_config['learning_rate_order_range'][0], range_config['learning_rate_order_range'][1]))
-    config['batch_normalize'] = random.choice([True, False])
-    config['batch_standarize'] = random.choice([True, False])
     config['discriminator']['alpha'] = random.uniform(range_config['discriminator']['alpha_range'][0], range_config['discriminator']['alpha_range'][1])
     config['discriminator']['alpha'] = 1/(10**random.randint(range_config['discriminator']['learning_rate_order_range'][0], \
                                                             range_config['discriminator']['learning_rate_order_range'][1]))
