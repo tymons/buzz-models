@@ -143,7 +143,7 @@ def main():
             # generate random discriminator config if needed
             discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
-            build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, args.model_output,
+            build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
                                     use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels, comet_api_key=comet_api_key)
 
     else:
