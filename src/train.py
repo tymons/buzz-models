@@ -38,6 +38,7 @@ def build_and_train_model(model_type, model_config, train_config, train_loader, 
         try:
             model = m.train_model(model, train_config, train_loader, val_loader, discriminator=discriminator, \
                                     comet_params=log_dict, comet_tags=comet_tags, model_output_folder=model_output_folder, comet_api_key=comet_api_key)
+            loggint.info('model train success!')
         except Exception:
             logging.error('model train fail!')
             logging.error(traceback.print_exc())

@@ -1,14 +1,9 @@
-name: sound-pytorch-env
+name: pytorch-cuda-env
 channels:
   - defaults
-  - pytorch
   - conda-forge
 dependencies:
   - python==3.8.5
-  - cudatoolkit=10.1
-  - torchaudio
-  - pytorch
-  - torchvision
   - scikit-learn
   - librosa
   - pip
