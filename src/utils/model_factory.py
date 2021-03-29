@@ -156,4 +156,7 @@ class HiveModelFactory():
             model 
         """
         model_func = getattr(cls, f'_get_{model_type}_model', lambda: 'invalid model type')
-        return model_func(config, input_shape)
+        model, params_dict = model_func(config, input_shape)
+        model_params_dict = {f"MODEL_{key}": val for key, val in params_dict.items()}
+
+        return model, model_params_dict

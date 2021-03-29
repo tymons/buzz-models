@@ -7,7 +7,6 @@ from utils.dataset.bioacustics_indicies.compute_indice import compute_ACI, compu
 
 from torch.utils.data import Dataset
 
-
 class SoundIndiciesDataset(Dataset):
     def __init__(self, filenames, hives, indicator_type, nfft, hop_len, \
                     j_samples=None, adi_freq_step=None, scale_db=False):
@@ -34,6 +33,25 @@ class SoundIndiciesDataset(Dataset):
 
         # adi/ei related params
         self.freq_step = adi_freq_step          # freq step for ADI/AEI
+
+    def get_params(self):
+        """ Function for returning params """
+        params = { 'indicator_type': self.indicator_type }
+        if self.indicator_type == SoundIndicator.ACI:
+            aci_params = {
+                'aci_nfft': self.nfft,
+                'aci_hop_len': self.hop_len,
+                'scale_db': self.scale_db,
+                'aci_j_samples': self.j_samples
+            }
+            params = {**params, **aci_params}
+        elif self.indicator_type == SoundIndicator.AEI or self.indicator_type == SoundIndicator.ADI:
+            adi_aei_params = {
+                'freq_step': self.freq_step
+            }
+            params = {**params, **adi_aei_params}
+
+        return params
 
     def __getitem__(self, idx):
 
