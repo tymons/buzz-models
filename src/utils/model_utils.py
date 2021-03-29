@@ -46,8 +46,6 @@ def generate_train_infos(range_config):
     config = {
         'batch_size': 0,
         'learning_rate': 0,
-        'batch_normalize': None,
-        'batch_standarize': None,
         'discriminator': {
             'alpha': 0,
             'learning_rate': 0
@@ -58,11 +56,9 @@ def generate_train_infos(range_config):
     random.seed()
 
     config['batch_size'] = random.randint(range_config['batch_size_range'][0], range_config['batch_size_range'][1])
-    config['learning_rate'] = 1/(10*random.randint(range_config['learning_rate_order_range'][0], range_config['learning_rate_order_range'][1]))
-    config['batch_normalize'] = random.choice([True, False])
-    config['batch_standarize'] = random.choice([True, False])
+    config['learning_rate'] = 1/(10**random.randint(range_config['learning_rate_order_range'][0], range_config['learning_rate_order_range'][1]))
     config['discriminator']['alpha'] = random.uniform(range_config['discriminator']['alpha_range'][0], range_config['discriminator']['alpha_range'][1])
-    config['discriminator']['alpha'] = 1/(10*random.randint(range_config['discriminator']['learning_rate_order_range'][0], \
+    config['discriminator']['alpha'] = 1/(10**random.randint(range_config['discriminator']['learning_rate_order_range'][0], \
                                                             range_config['discriminator']['learning_rate_order_range'][1]))
 
     return config
@@ -112,7 +108,7 @@ def generate_conv_model_config(range_config, input_shape):
 
     # convolutional layers generation
     conv_feature_map = []
-    logging.debug()
+
     while True:
         number_of_conv_layers = random.randint(range_config['conv_layers_number_range'][0], range_config['conv_layers_number_range'][1])
         conv_max_size = range_config['conv_features_range'][1]
@@ -233,8 +229,9 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     }.get(model_name, lambda x: logging.error(f'loss function for model {x} not implemented!'))
 
     # setup comet ml experiment
+    learning_params_log = {f"LEARNING_{key}": val for key, val in learning_params.items()}
     experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
-                                            parameters=dict(learning_params, **comet_params), tags=comet_tags)
+                                            parameters={**learning_params_log, **comet_params}, tags=comet_tags)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])

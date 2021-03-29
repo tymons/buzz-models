@@ -76,7 +76,8 @@ class SoundFeatureFactory():
             num_workers (int): num workers for dataloaders
 
         Returns:
-            train_loader, val_loader (tuple(Dataloader, Dataloader)): train dataloader, validation dataloder
+            (train_loader, val_loader) (tuple(Dataloader, Dataloader)): train dataloader, validation dataloder
+            feature_params (dict): dictionary with feature params
         """
         method_name = f'_get_{input_type.lower()}_dataset'
         function = getattr(cls, method_name, lambda: 'invalid dataset')
@@ -89,5 +90,7 @@ class SoundFeatureFactory():
         train_set, val_set = random_split(dataset, [(dataset.__len__() - val_amount), val_amount])
         train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
         val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
+        
+        feature_params_dict = {f"FEATURE_{key}": val for key, val in dataset.get_params().items()}
 
-        return train_loader, val_loader
+        return (train_loader, val_loader), feature_params_dict

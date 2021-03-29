@@ -68,6 +68,14 @@ class SpectrogramDataset(Dataset, Sound):
         self.fmax = fmax
         self.truncate = truncate_power_two
 
+    def get_params(self):
+        """ Function for returning params """
+        return {
+            'nfft': self.nfft,
+            'hop_len': self.hop_len,
+            'fmax': self.fmax
+        }
+
     def read_item(self, idx):
         """ Function for getting item from Spectrogram dataset
 
