@@ -250,6 +250,10 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     checkpoint_full_path = os.path.join(model_output_folder, checkpoint_file)
 
     # pass model to gpu if is available
+    if torch.cuda.device_count() > 1:
+        logging.info("we will be using", torch.cuda.device_count(), "GPUs!")
+        model = nn.DataParallel(model)
+
     model.to(device)
     if discriminator is not None:
         discriminator.to(device)
