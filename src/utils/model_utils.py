@@ -251,7 +251,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
 
     # pass model to gpu if is available
     if torch.cuda.device_count() > 1:
-        logging.info("we will be using", torch.cuda.device_count(), "GPUs!")
+        logging.info(f"we will be using {torch.cuda.device_count()} GPUs.")
         model = nn.DataParallel(model)
 
     model.to(device)
