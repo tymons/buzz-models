@@ -11,12 +11,14 @@ import numpy as np
 from torch.utils import data as tdata
 from torch import nn
 
-from utils.data_utils import batch_normalize, batch_standarize
+from utils.data_utils import batch_normalize, batch_standarize, batch_addnoise
 from utils.models.vae import vae_loss
 from utils.models.conv_ae import conv_mlp_layer_shape
 from utils.models.discriminator import discriminator_loss
 from utils.models.ae import ae_loss_fun
 from utils.models.cvae import cvae_loss
+
+import matplotlib.pyplot as plt
 
 
 def generate_discriminator_model_config(range_config):
@@ -196,7 +198,7 @@ def _model_load(model, optimizer, checkpoint_full_path, discriminator=None, disc
 
     return epoch, loss
 
-def _batch_transform(batch, standarize, normalize, noise=False, noise_factor=0.3):
+def _batch_transform(batch, standarize, normalize):
     """ Wrapper for performing batch specific transformations 
         Note that adding noise performs clipping as well, data should be within range [0,1]
     Parameters:
@@ -209,22 +211,11 @@ def _batch_transform(batch, standarize, normalize, noise=False, noise_factor=0.3
     Returns:
         batch: transformated batc 
     """
-    if noise:
-        print('noise')
     if standarize:
-        print('stan')
         batch = batch_standarize(batch)
     if normalize:
-        print('norm')
         batch = batch_normalize(batch)
     return batch
-
-def _batch_addnoise(batch, noise_factor=0.3):
-    """ Function for adding noise to batch """
-    noised_batch_input = batch + noise_factor * torch.randn(*batch.shape)
-    noised_batch_input = np.clip(noised_batch_input, 0., 1.)
-    return noised_batch_input
-
 
 def train_model(model, learning_params, train_loader, val_loader, discriminator=None, denoising=False,
                     comet_params={}, comet_tags=[], model_output_folder="output", comet_api_key=None):
@@ -307,10 +298,9 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                 transformed_batch = _batch_transform(batch, learning_params['batch_standarize'], learning_params['batch_normalize'])
                 concatenated_batch[position] = transformed_batch.to(device)
                 if denoising:
-                    concatenated_input_batch[position] = _batch_addnoise(transformed_batch, learning_params['denoising_factor']).to(device)
+                    concatenated_input_batch[position] = batch_addnoise(transformed_batch, learning_params['denoising_factor']).to(device)
                 else:
                     concatenated_input_batch[position] = concatenated_batch[position]
-                
 
             optimizer.zero_grad()
             output_dict = model(*concatenated_input_batch)      
@@ -354,7 +344,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                 transformed_val_batch = _batch_transform(batch_val, learning_params['batch_standarize'], learning_params['batch_normalize'])
                 concatenated_val_batch[position] = transformed_val_batch.to(device)
                 if denoising:
-                    concatenated_input_val_batch[position] = _batch_addnoise(transformed_val_batch, learning_params['denoising_factor']).to(device)
+                    concatenated_input_val_batch[position] = batch_addnoise(transformed_val_batch, learning_params['denoising_factor']).to(device)
                 else:
                     concatenated_input_val_batch[position] = concatenated_val_batch[position]
             

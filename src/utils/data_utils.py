@@ -105,6 +105,12 @@ def batch_standarize(batch_data):
     """ Function for data standarization across batch """
     return _batch_perform(batch_data, lambda a : StandardScaler().fit_transform(a))
 
+def batch_addnoise(batch, noise_factor=0.1):
+    """ Function for adding noise to batch """
+    noised_batch_input = batch + noise_factor * torch.randn(*batch.shape)
+    noised_batch_input = np.clip(noised_batch_input, 0., 1.)
+    return noised_batch_input
+
 
 def _batch_perform(batch_data: torch.Tensor, operation: Callable):
     """ Function for data normalization accross batch """
