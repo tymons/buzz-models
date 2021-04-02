@@ -4,13 +4,13 @@
             "nfft": 4096,
             "hop_len": 1395,
             "fmax": 2750,
-            "scale": false
+            "scale": true
         },
         "melspectrogram": {
             "nfft": 4096,
             "hop_len": 353,
             "mels": 36,
-            "scale": false
+            "scale": true
         },
         "periodogram": {
             "slice_frequency_start": 0,
@@ -88,7 +88,7 @@
             "learning_rate": 1e-3,
             "weight_decay": 1e-2
         },
-        "denoising_factor": 0.5
+        "denoising_factor": 0.05
     },
     "random_search": {
         "model": {

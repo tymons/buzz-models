@@ -125,7 +125,7 @@ def main():
 
     # get dataset and loaders
     feature_config = config['features'][args.feature]
-    if args.denoising and not feature_config.get(['scale']):
+    if args.denoising and not feature_config.get('scale'):
         logging.warning("you have specified denoising flag which trucates input to [0,1] and did not specified 'scale' option in feature config!")
 
     dataset, fparams_dict = SoundFeatureFactory.build_dataset(SoundFeatureType.from_name(args.feature), target_filenames, target_labels, feature_config, \
