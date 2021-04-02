@@ -122,6 +122,8 @@ def main():
     logging.info(f'dataset total length: {len(target_filenames) + len(background_filenames)}')
 
     log_labels = target_labels + background_labels + [args.feature]
+    if args.denoising == True:
+        log_labels = log_labels + ['denoising']
 
     # get dataset and loaders
     feature_config = config['features'][args.feature]
