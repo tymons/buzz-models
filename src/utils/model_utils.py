@@ -166,7 +166,7 @@ def permutate_latent(latents_batch, inplace=False):
 
 def setup_comet_ml_experiment(api_key, project_name, experiment_name, parameters, tags):
     """ Function for setting up comet ml experiment """
-    experiment = Experiment(api_key=api_key, project_name=project_name, auto_metric_logging=False)
+    experiment = Experiment(api_key=api_key, auto_output_logging=False, project_name=project_name, auto_metric_logging=False)
     experiment.set_name(experiment_name)
     experiment.log_parameters(parameters)
     experiment.add_tags(tags)
