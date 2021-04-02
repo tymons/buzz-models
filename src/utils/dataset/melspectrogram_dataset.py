@@ -13,7 +13,7 @@ from utils.data_utils import adjust_matrix, closest_power_2
 
 class MelSpectrogramDataset(Dataset, Sound):
     """ MelSpectrogram dataset """
-    def __init__(self, filenames, hives, nfft, hop_len, mels, truncate_power_two=False):
+    def __init__(self, filenames, hives, nfft, hop_len, mels, scale, truncate_power_two=False):
         """ Constructor for MelSepctrogram Dataset
 
         Parameters:
@@ -29,14 +29,11 @@ class MelSpectrogramDataset(Dataset, Sound):
         self.hop_len = hop_len
         self.mels = mels
         self.truncate = truncate_power_two
+        self.scale = scale
 
     def get_params(self):
-        """ Function for returning params """
-        return {
-            'number_of_mels': self.mels,
-            'nfft': self.nfft,
-            'hop_len': self.hop_len
-        }
+        """ Method for returning feature params """
+        return self.__dict__
 
     def __getitem__(self, idx):
         # read sound samples from file
@@ -48,11 +45,11 @@ class MelSpectrogramDataset(Dataset, Sound):
         if self.truncate:
             mel = adjust_matrix(mel, 2**closest_power_2(mel.shape[0]), 2**closest_power_2(mel.shape[1]))
 
-        initial_shape = mel.shape
-        mel_scaled_spectrogram_db = MinMaxScaler().fit_transform(mel.reshape(-1, 1)).reshape((1, *initial_shape))
-        mel_scaled_spectrogram_db = mel_scaled_spectrogram_db.astype(np.float32)
+        if self.scale:
+            initial_shape = mel.shape
+            mel = MinMaxScaler().fit_transform(mel.reshape(-1, 1)).reshape((1, *initial_shape)).astype(np.float32)
 
-        return [mel_scaled_spectrogram_db], label
+        return [mel], label
  
     def __len__(self):
         return len(self.filenames)

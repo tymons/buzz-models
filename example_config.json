@@ -3,12 +3,14 @@
         "spectrogram": {
             "nfft": 4096,
             "hop_len": 1395,
-            "fmax": 2750
+            "fmax": 2750,
+            "scale": true
         },
         "melspectrogram": {
             "nfft": 4096,
             "hop_len": 353,
-            "mels": 36
+            "mels": 36,
+            "scale": false
         },
         "periodogram": {
             "slice_frequency_start": 0,
@@ -19,9 +21,10 @@
         "mfcc": {
             "nfft": 4096,
             "hop_len": 1395,
-            "mels": 64
+            "mels": 64,
+            "scale": false
         },
-        "sound_indicies": {
+        "indicies": {
             "type": "aci",
             "config": {
                 "nfft": 4096,

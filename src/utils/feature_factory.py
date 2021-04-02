@@ -14,44 +14,43 @@ class SoundFeatureFactory():
     """ Factory for data loaders """
     def _get_spectrogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting spectrogram """
-        spectrogram_params = features_params_dict.get('spectrogram', {})
-        nfft = spectrogram_params.get('nfft', 4096)
-        hop_len = spectrogram_params.get('hop_len', (4096//3)+30)
-        fmax = spectrogram_params.get('fmax', 2750)
+        nfft = features_params_dict.get('nfft', 4096)
+        hop_len = features_params_dict.get('hop_len', (4096//3)+30)
+        fmax = features_params_dict.get('fmax', 2750)
+        should_scale = features_params_dict.get('scale', True)
 
-        logging.info(f'building spectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), fmax({fmax})')
-        return SpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, fmax=fmax, truncate_power_two=True)
+        logging.info(f'building spectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), fmax({fmax}), min_max_scale({should_scale})')
+        return SpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, scale=should_scale, fmax=fmax, truncate_power_two=True)
 
     def _get_melspectrogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting melspectrogram dataset """
-        melspectrogram_params = features_params_dict.get('melspectrogram', {})
-        nfft = melspectrogram_params.get('nfft', 4096)
-        hop_len = melspectrogram_params.get('hop_len', (4096//3)+30)
-        no_mels = melspectrogram_params.get('mels', 64)
+        nfft = features_params_dict.get('nfft', 4096)
+        hop_len = features_params_dict.get('hop_len', (4096//3)+30)
+        no_mels = features_params_dict.get('mels', 64)
+        should_scale = features_params_dict.get('scale', True)
 
-        logging.info(f'building melspectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), no_mels({no_mels})')
-        return MelSpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels, truncate_power_two=True)
+        logging.info(f'building melspectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), no_mels({no_mels}), min_max_scale({should_scale})')
+        return MelSpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, scale=should_scale, mels=no_mels, truncate_power_two=True)
 
     def _get_periodogram_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting periodogram dataset """
-        periodogram_params = features_params_dict.get('periodogram', {})
-        start_freq = periodogram_params.get('slice_frequency_start', 0)
-        stop_freq = periodogram_params.get('slice_frequency_stop', 2048)
-        db_scale = periodogram_params.get('scale_db', False)
-        should_scale = periodogram_params.get('scale', True)
+        start_freq = features_params_dict.get('slice_frequency_start', 0)
+        stop_freq = features_params_dict.get('slice_frequency_stop', 2048)
+        db_scale = features_params_dict.get('scale_db', False)
+        should_scale = features_params_dict.get('scale', True)
 
         logging.info(f'building periodogram dataset with params: db_scale({db_scale}), min_max_scale({should_scale}), slice_freq({(start_freq, stop_freq)})')
         return PeriodogramDataset(sound_filenames, labels, scale_db=db_scale, scale=should_scale, slice_freq=(start_freq, stop_freq))
 
     def _get_mfcc_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting mfcc from sound """
-        mfcc_params = features_params_dict.get('mfcc', {})
-        nfft = mfcc_params.get('nfft', 4096)
-        hop_len = mfcc_params.get('hop_len', (4096//3)+30)
-        no_mels = mfcc_params.get('mels', 64)
+        nfft = features_params_dict.get('nfft', 4096)
+        hop_len = features_params_dict.get('hop_len', (4096//3)+30)
+        no_mels = features_params_dict.get('mels', 64)
+        should_scale = features_params_dict.get('scale', True)
 
-        logging.info(f'building mfcc dataset with params: nfft({nfft}), hop_len({hop_len}), no_mels({no_mels})')
-        return MfccDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, mels=no_mels)
+        logging.info(f'building mfcc dataset with params: nfft({nfft}), hop_len({hop_len}), no_mels({no_mels}), min_max_scale({should_scale})')
+        return MfccDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, scale=should_scale, mels=no_mels)
 
     def _get_indicies_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting indicies from sounds """

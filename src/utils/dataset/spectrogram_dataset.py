@@ -52,7 +52,7 @@ def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scal
 
 class SpectrogramDataset(Dataset, Sound):
     """ Spectrogram dataset """
-    def __init__(self, filenames, hives, nfft, hop_len, fmax=None, truncate_power_two=False):
+    def __init__(self, filenames, hives, nfft, hop_len, scale=True, fmax=None, truncate_power_two=False):
         """ Constructor for Sepctrogram Dataset
 
         Parameters:
@@ -67,14 +67,11 @@ class SpectrogramDataset(Dataset, Sound):
         self.hop_len = hop_len
         self.fmax = fmax
         self.truncate = truncate_power_two
+        self.scale = scale
 
     def get_params(self):
-        """ Function for returning params """
-        return {
-            'nfft': self.nfft,
-            'hop_len': self.hop_len,
-            'fmax': self.fmax
-        }
+        """ Method for returning feature params """
+        return self.__dict__
 
     def read_item(self, idx):
         """ Function for getting item from Spectrogram dataset
@@ -87,7 +84,7 @@ class SpectrogramDataset(Dataset, Sound):
         """
         sound_samples, sampling_rate, label = Sound.read_sound(self, idx)
         spectrogram_db, frequencies, times = calculate_spectrogram(sound_samples, sampling_rate, self.nfft, \
-                                                                     self.hop_len, self.fmax, scale=True)
+                                                                     self.hop_len, self.fmax, scale=self.scale)
         if self.truncate:
             spectrogram_db = adjust_matrix(spectrogram_db, 2**closest_power_2(spectrogram_db.shape[0]), 2**closest_power_2(spectrogram_db.shape[1]))
 
