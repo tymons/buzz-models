@@ -18,8 +18,6 @@ from utils.models.discriminator import discriminator_loss
 from utils.models.ae import ae_loss_fun
 from utils.models.cvae import cvae_loss
 
-import matplotlib.pyplot as plt
-
 
 def generate_discriminator_model_config(range_config):
     """ Function for generating discriminator model config """
@@ -168,7 +166,7 @@ def permutate_latent(latents_batch, inplace=False):
 
 def setup_comet_ml_experiment(api_key, project_name, experiment_name, parameters, tags):
     """ Function for setting up comet ml experiment """
-    experiment = Experiment(api_key=api_key, display_summary_level=0, project_name=project_name, auto_metric_logging=False)
+    experiment = Experiment(api_key=api_key, project_name=project_name, auto_metric_logging=False)
     experiment.set_name(experiment_name)
     experiment.log_parameters(parameters)
     experiment.add_tags(tags)
