@@ -74,21 +74,23 @@ def get_soundfilenames_and_labels(root_folder: str, valid_sounds_filename: str, 
 def main():
     parser = argparse.ArgumentParser(description='Process some integers.')
     # positional arguments
-    parser.add_argument('model_type', metavar='model_type', type=str, help='Model Type [vae, cvae, contrastive_vae, contrastive_cvae, ae, cae]')
+    parser.add_argument('model_type', metavar='model_type', type=str, help="Model Type [vae, cvae, contrastive_vae, contrastive_cvae, ae, cae]")
     parser.add_argument('feature', metavar='feature', type=str, help='Input feature')
     parser.add_argument('root_folder', metavar='root_folder', type=str, help='Root folder for data')
     # optional arguments
-    parser.add_argument("--background", type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
-    parser.add_argument("--target", type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
+    parser.add_argument('--background', type=str, nargs='+', help="folder prefixes for background data in contrastive learning")
+    parser.add_argument('--target', type=str, nargs='+', help="folder prefixes for target data in contrastive learning")
     parser.add_argument('--check-data', dest='check_data', action='store_true')
-    parser.add_argument("--log_folder", type=str, default='.', help="name of debug file")
-    parser.add_argument("--config_file", default='config.json', type=str)
-    parser.add_argument('--random_search', type=int, help='number of tries to find best architecture')
+    praser.add_argument('--denoising', dest='denoising', action='store_true', help="flag used for forcing autoencoder model to act as 'denoising' autoencoder")
+    parser.add_argument('--log_folder', type=str, default='.', help="name of debug file")
+    parser.add_argument('--config_file', default='config.json', type=str)
+    parser.add_argument('--random_search', type=int, help="number of tries to find best architecture")
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
     parser.add_argument('--model_output', type=str, default="output/models", help="folder for model output")
-    parser.add_argument("--comet_config", default='config.json', type=str)
+    parser.add_argument('--comet_config', default='config.json', type=str)
     parser.set_defaults(discriminator=False)
     parser.set_defaults(check_data=False)
+    parser.set_defaults(denoising=False)
 
     args = parser.parse_args()
 
@@ -120,10 +122,9 @@ def main():
 
     log_labels = target_labels + background_labels + [args.feature]
 
-    # get loaders
-    (train_loader, val_loader), fparams_dict = SoundFeatureFactory.build_dataloaders(args.feature, target_filenames, target_labels, 
-                                                        config['features'], config['learning'].get('batch_size', 32),
-                                                        background_filenames=background_filenames, background_labels=background_labels)
+    # get dataset and loaders
+    dataset, fparams_dict = SoundFeatureFactory.build_datasets(args.feature, target_filenames, target_labels, background_filenames=background_filenames, background_labels=background_labels)
+    train_loader, val_loader = SoundFeatureFactory.build_dataloaders(dataset, config['features'], config['learning'].get('batch_size', 32))
 
     # read comet ml api key from specified file
     comet_api_key = read_comet_api_key(args.comet_config) if args.comet_config else None

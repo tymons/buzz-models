@@ -1,5 +1,6 @@
 import logging
 
+from enum import Enum
 from torch.utils.data import DataLoader, random_split
 
 from utils.dataset.periodogram_dataset import PeriodogramDataset
@@ -63,34 +64,64 @@ class SoundFeatureFactory():
 
 
     @classmethod
-    def build_dataloaders(cls, input_type, sound_filenames, labels, features_params_dict, batch_size, ratio=0.15, num_workers=4,
-                            background_filenames=[], background_labels=[]):
-        """ Function for getting dataloaders 
+    def build_dataset(cls, input_type, sound_filenames, labels, features_params_dict, background_filenames=[], background_labels=[]):
+        """ Function for building dataset based on sound filenames and defined feature 
         
         Parameters:
-            input_type (str): input type, should be one oof InputType Enum values
+            input_type (Enum): input type
             sound_filenames (list(str)): list with sound filenames
             labels (list(str)): label names
-            batch_size (int): batch size for dataloader
-            ratio (int): ratio between train dataset and validation dataset
-            num_workers (int): num workers for dataloaders
+            features_params_dict (dictionary): dictionary from config.json for particular feature
+            background_filenames (list): background filenames for contrastive learning
+            background_labels (list): background labels for contrastive learning
 
         Returns:
-            (train_loader, val_loader) (tuple(Dataloader, Dataloader)): train dataloader, validation dataloder
-            feature_params (dict): dictionary with feature params
+            dataset (nn.Dataset): dataset
+            fparams (dict): params used to build dataset
         """
-        method_name = f'_get_{input_type.lower()}_dataset'
+        method_name = f'_get_{input_type.value.lower()}_dataset'
         function = getattr(cls, method_name, lambda: 'invalid dataset')
         dataset = function(sound_filenames, labels, features_params_dict)
         if background_filenames and background_labels:
             background = function(background_filenames, background_labels, features_params_dict)
             dataset = DoubleFeatureDataset(dataset, background)
 
+        feature_params_dict = {f"FEATURE_{key}": val for key, val in dataset.get_params().items()}
+
+        return dataset, feature_params_dict
+
+    @classmethod
+    def build_dataloaders(cls, dataset, batch_size, ratio=0.15, num_workers=4):
+        """ Function for getting dataloaders 
+        
+        Parameters:
+            dataset (nn.Dataset): dataset from which dataloader should be build
+            batch_size (int): batch size for loader
+            ratio (int): ratio between train dataset and validation dataset
+            num_workers (int): num workers for dataloaders
+
+        Returns:
+            (train_loader, val_loader) (tuple(Dataloader, Dataloader)): train dataloader, validation dataloder
+        """
         val_amount = int(dataset.__len__() * ratio)
         train_set, val_set = random_split(dataset, [(dataset.__len__() - val_amount), val_amount])
+
         train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
         val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, drop_last=True, num_workers=num_workers)
         
-        feature_params_dict = {f"FEATURE_{key}": val for key, val in dataset.get_params().items()}
+        return train_loader, val_loader
 
-        return (train_loader, val_loader), feature_params_dict
+
+    class InputType(Enum):
+        SPECTROGRAM = 'spectrogram'
+        MELSPECTROGRAM = 'melspectrogram'
+        PERIODOGRAM = 'periodogram'
+        MFCC = 'mfcc'
+        BIOINDICIES = 'indicies'
+
+        @classmethod
+        def from_name(cls, name):
+            for _, feature in InputType.__members__.items():
+                if feature.value == name:
+                    return feature_value
+            raise ValueError(f"{name} is not a valid station name")
