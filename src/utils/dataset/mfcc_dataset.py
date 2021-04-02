@@ -27,11 +27,11 @@ class MfccDataset(Dataset, Sound):
         mfccs = librosa.feature.mfcc(y=sound_samples, sr=sampling_rate, n_fft=self.nfft, hop_length=self.hop_len, n_mfcc=self.n_mels)
         mfccs = mfccs.astype(np.float32)
         mfccs_avg = np.mean(mfccs, axis=1)
-        mfccs_avg = mfccs_avg[None, :] # TODO: check
         
         if self.scale:
-            mfccs_avg = MinMaxScaler().fit_transform(mfccs_avg.reshape(-1, 1)).squeeze()
+            mfccs_avg = MinMaxScaler().fit_transform(mfccs_avg.reshape(-1, 1))
 
+        mfccs_avg = mfccs_avg.reshape(1, -1)
         return [mfccs_avg], label
         
     def __len__(self):
