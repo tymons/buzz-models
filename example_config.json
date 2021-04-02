@@ -22,7 +22,7 @@
             "nfft": 4096,
             "hop_len": 1395,
             "mels": 64,
-            "scale": false
+            "scale": true
         },
         "indicies": {
             "type": "aci",
