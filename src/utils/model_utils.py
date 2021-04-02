@@ -252,8 +252,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
 
     # setup comet ml experiment
     learning_params_log = {f"LEARNING_{key}": val for key, val in learning_params.items()}
-    # experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
-    #                                         parameters={**learning_params_log, **comet_params}, tags=comet_tags)
+    experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
+                                            parameters={**learning_params_log, **comet_params}, tags=comet_tags)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
@@ -268,8 +268,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     # best validation score
     best_val_loss = -1
     # model checkpoint filename
-    checkpoint_file = f'temp-checkpoint.pth'
-    # checkpoint_file = f'{experiment.get_name()}-checkpoint.pth'
+    checkpoint_file = f'{experiment.get_name()}-checkpoint.pth'
     checkpoint_full_path = os.path.join(model_output_folder, checkpoint_file)
 
     # pass model to gpu if is available
@@ -312,7 +311,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             optimizer.step()
 
             # log comet ml metric and watch avg losses
-            # experiment.log_metric("batch_train_loss", loss.item(), step=step)
+            experiment.log_metric("batch_train_loss", loss.item(), step=step)
             train_loss.append(loss.item())
 
             if discriminator:
@@ -327,7 +326,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                 optimizer_discriminator.step()
 
                 # log comet ml metric
-                # experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
+                experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
 
             step = step + 1
 
@@ -356,7 +355,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             val_loss.append(vloss.item())
 
             # log comet ml metric
-            # experiment.log_metric("batch_val_loss", vloss.item(), step=step)
+            experiment.log_metric("batch_val_loss", vloss.item(), step=step)
             step = step + 1
 
         # print training/validation statistics
@@ -366,8 +365,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
 
         # print avg training statistics
         logging.info(f'Epoch [{epoch}/{learning_params["epochs"]}], LOSS: {train_loss:.6f}, VAL_LOSS: {val_loss:.6f}')
-        # experiment.log_metric("train_loss", train_loss, step=epoch)
-        # experiment.log_metric("val_loss", val_loss, step=epoch)
+        experiment.log_metric("train_loss", train_loss, step=epoch)
+        experiment.log_metric("val_loss", val_loss, step=epoch)
 
         if val_loss < best_val_loss or best_val_loss == -1:
             # new checkpoint 
