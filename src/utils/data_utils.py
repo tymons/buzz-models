@@ -1,20 +1,15 @@
-import glob
 import os
+import glob
 import math
 import logging
+import collections
+
+import torch
+import numpy as np
 
 from enum import Enum
 from scipy.io import wavfile
-
-import torch
-import collections
-import math
-import numpy as np
-
-from torch.utils import data as tdata
-from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
 from typing import Callable
 
 
