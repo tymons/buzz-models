@@ -1,20 +1,15 @@
-import glob
 import os
+import glob
 import math
 import logging
+import collections
+
+import torch
+import numpy as np
 
 from enum import Enum
 from scipy.io import wavfile
-
-import torch
-import collections
-import math
-import numpy as np
-
-from torch.utils import data as tdata
-from sklearn.svm import SVC
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
 from typing import Callable
 
 
@@ -109,6 +104,12 @@ def batch_normalize(batch_data):
 def batch_standarize(batch_data):
     """ Function for data standarization across batch """
     return _batch_perform(batch_data, lambda a : StandardScaler().fit_transform(a))
+
+def batch_addnoise(batch, noise_factor=0.1):
+    """ Function for adding noise to batch """
+    noised_batch_input = batch + noise_factor * torch.randn(*batch.shape)
+    noised_batch_input = np.clip(noised_batch_input, 0., 1.)
+    return noised_batch_input
 
 
 def _batch_perform(batch_data: torch.Tensor, operation: Callable):

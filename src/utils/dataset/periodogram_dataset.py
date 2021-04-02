@@ -18,16 +18,14 @@ class PeriodogramDataset(Dataset, Sound):
         self.slice_freq = slice_freq
         self.scale = scale          # should scale data to be within 0 and 1
         self.scale_db = scale_db    # should scale data to log amplitude
-
-    def get_params(self):
-        """ Function for returning params """
-        return {
-            'slice_freq_start': self.slice_freq[0],
-            'slice_freq_stop': self.slice_freq[1],
-            'scaled_db': self.scale_db,
-            'scaled': self.scale
-        }
         
+    def get_params(self):
+        """ Method for returning feature params """
+        params = dict(self.__dict__)
+        params.pop('filenames')
+        params.pop('labels')
+        return params
+
     def __getitem__(self, idx):
         """ Method for pytorch dataloader """
         (periodogram, _), labels = self.get_item(idx)

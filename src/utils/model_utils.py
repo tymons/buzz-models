@@ -11,7 +11,7 @@ import numpy as np
 from torch.utils import data as tdata
 from torch import nn
 
-from utils.data_utils import batch_normalize, batch_standarize
+from utils.data_utils import batch_normalize, batch_standarize, batch_addnoise
 from utils.models.vae import vae_loss
 from utils.models.conv_ae import conv_mlp_layer_shape
 from utils.models.discriminator import discriminator_loss
@@ -196,7 +196,26 @@ def _model_load(model, optimizer, checkpoint_full_path, discriminator=None, disc
 
     return epoch, loss
 
-def train_model(model, learning_params, train_loader, val_loader, discriminator=None,
+def _batch_transform(batch, standarize, normalize):
+    """ Wrapper for performing batch specific transformations 
+        Note that adding noise performs clipping as well, data should be within range [0,1]
+    Parameters:
+        batch
+        standarize (bool):
+        normalize (bool)
+        add_nosize (bool)
+        noise_factor (float):
+
+    Returns:
+        batch: transformated batc 
+    """
+    if standarize:
+        batch = batch_standarize(batch)
+    if normalize:
+        batch = batch_normalize(batch)
+    return batch
+
+def train_model(model, learning_params, train_loader, val_loader, discriminator=None, denoising=False,
                     comet_params={}, comet_tags=[], model_output_folder="output", comet_api_key=None):
     """ Main function for training model 
     
@@ -206,6 +225,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         train_loader (DataLoader): data loader for train data
         val_loader (DataLoader): data loader for validation data
         discriminator (nn.Module): discriminator for contrastive learning
+        denoising (bool): flag if we should use autoencoder in denosing manner
         comet_params (dict): parameters which will be uploaded to comet ml
         comet_tags (list): list of tags which should be uploaded to comet ml experiment
         model_output_folder (str): folder where output models will be saved
@@ -268,17 +288,19 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             discriminator.train()
 
         for concatenated_batch, label in train_loader:
+            concatenated_input_batch = [None] * len(concatenated_batch)
             for position, batch in enumerate(concatenated_batch):
                 # as every dataset should return list (one or two elements - depends on contrastive learning or not)
-                # we should every element normalize/standarzie and pass to gpu
-                if learning_params['batch_standarize']:
-                    batch = batch_standarize(batch)
-                if learning_params['batch_normalize']:
-                    batch = batch_normalize(batch)
-                concatenated_batch[position] = batch.to(device)
+                # we should every element normalize/standarzie or add noise for denosing autoencoder and pass to gpu
+                transformed_batch = _batch_transform(batch, learning_params['batch_standarize'], learning_params['batch_normalize'])
+                concatenated_batch[position] = transformed_batch.to(device)
+                if denoising:
+                    concatenated_input_batch[position] = batch_addnoise(transformed_batch, learning_params['denoising_factor']).to(device)
+                else:
+                    concatenated_input_batch[position] = concatenated_batch[position]
 
             optimizer.zero_grad()
-            output_dict = model(*concatenated_batch)
+            output_dict = model(*concatenated_input_batch)      
             if discriminator is None:
                 loss = loss_fun(*concatenated_batch, output_dict)
             else:
@@ -312,16 +334,18 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         model.eval()
         step = 1
         for concatenated_val_batch, label in val_loader:
-            # as every dataset should return list (one or two elements - depends on contrastive learning or not)
-            # we should every element normalize/standarzie and pass to gpu
+            concatenated_input_val_batch = [None] * len(concatenated_val_batch)
             for position, batch_val in enumerate(concatenated_val_batch):
-                if learning_params['batch_standarize']:
-                    batch_val = batch_standarize(batch_val)
-                if learning_params['batch_normalize']:
-                    batch_val = batch_normalize(batch_val)
-                concatenated_val_batch[position] = batch_val.to(device)
+                # as every dataset should return list (one or two elements - depends on contrastive learning or not)
+                # we should every element normalize/standarzie and pass to gpu
+                transformed_val_batch = _batch_transform(batch_val, learning_params['batch_standarize'], learning_params['batch_normalize'])
+                concatenated_val_batch[position] = transformed_val_batch.to(device)
+                if denoising:
+                    concatenated_input_val_batch[position] = batch_addnoise(transformed_val_batch, learning_params['denoising_factor']).to(device)
+                else:
+                    concatenated_input_val_batch[position] = concatenated_val_batch[position]
             
-            val_output_dict = model(*concatenated_val_batch)
+            val_output_dict = model(*concatenated_input_val_batch)
             if discriminator is None:
                 vloss = loss_fun(*concatenated_val_batch, val_output_dict)
             else:
@@ -358,7 +382,6 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         # clear batch losses
         train_loss = []
         val_loss = []
-    
     
     epoch, _ = _model_load(model, optimizer, checkpoint_full_path, discriminator=discriminator, \
                                                             discriminator_optimizer=optimizer_discriminator)
