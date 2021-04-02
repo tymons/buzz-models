@@ -4,7 +4,7 @@
             "nfft": 4096,
             "hop_len": 1395,
             "fmax": 2750,
-            "scale": true
+            "scale": false
         },
         "melspectrogram": {
             "nfft": 4096,
@@ -87,7 +87,8 @@
             "alpha": 0.1,
             "learning_rate": 1e-3,
             "weight_decay": 1e-2
-        }
+        },
+        "denoising_factor": 0.5
     },
     "random_search": {
         "model": {

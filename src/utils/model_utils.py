@@ -196,7 +196,7 @@ def _model_load(model, optimizer, checkpoint_full_path, discriminator=None, disc
 
     return epoch, loss
 
-def _batch_transform(batch, standarize, normalize, noise=False, noise_factor=None):
+def _batch_transform(batch, standarize, normalize, noise=False, noise_factor=0.3):
     """ Wrapper for performing batch specific transformations 
         Note that adding noise performs clipping as well, data should be within range [0,1]
     Parameters:
@@ -209,7 +209,7 @@ def _batch_transform(batch, standarize, normalize, noise=False, noise_factor=Non
     Returns:
         batch: transformated batc 
     """
-    if noise and noise_factor:
+    if noise:
         batch = batch + noise_factor * torch.randn(*batch.shape)
         batch = np.clip(batch, 0., 1.)
     if standarize:
@@ -296,8 +296,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             for position, batch in enumerate(concatenated_batch):
                 # as every dataset should return list (one or two elements - depends on contrastive learning or not)
                 # we should every element normalize/standarzie and pass to gpu
-                batch = _batch_transform(batch, learning_params['batch_standarize'], learning_params['batch_normalize'),
-                                            denoising, learning_params['data_noise_factor'])
+                batch = _batch_transform(batch, learning_params['batch_standarize'], learning_params['batch_normalize'], \
+                                            denoising, learning_params['denoising_factor'])
                 concatenated_input_batch[position] = batch.to_device(device)
 
             optimizer.zero_grad()
@@ -339,7 +339,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             for position, batch_val in enumerate(concatenated_val_batch):
                 # as every dataset should return list (one or two elements - depends on contrastive learning or not)
                 # we should every element normalize/standarzie and pass to gpu
-                batch_val = _batch_transform(batch_val, learning_params['batch_standarize'], learning_params['batch_normalize'), denoising)
+                batch_val = _batch_transform(batch_val, learning_params['batch_standarize'], learning_params['batch_normalize'], \
+                                            denoising, learning_params['data_noise_factor'])
                 concatenated_input_val_batch[position] = batch_val.to_device(device)
             
             val_output_dict = model(*concatenated_input_val_batch)

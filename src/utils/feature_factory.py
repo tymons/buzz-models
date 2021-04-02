@@ -111,16 +111,16 @@ class SoundFeatureFactory():
         return train_loader, val_loader
 
 
-    class InputType(Enum):
-        SPECTROGRAM = 'spectrogram'
-        MELSPECTROGRAM = 'melspectrogram'
-        PERIODOGRAM = 'periodogram'
-        MFCC = 'mfcc'
-        BIOINDICIES = 'indicies'
+class SoundFeatureType(Enum):
+    SPECTROGRAM = 'spectrogram'
+    MELSPECTROGRAM = 'melspectrogram'
+    PERIODOGRAM = 'periodogram'
+    MFCC = 'mfcc'
+    BIOINDICIES = 'indicies'
 
-        @classmethod
-        def from_name(cls, name):
-            for _, feature in InputType.__members__.items():
-                if feature.value == name:
-                    return feature_value
-            raise ValueError(f"{name} is not a valid station name")
+    @classmethod
+    def from_name(cls, name):
+        for _, feature in SoundFeatureType.__members__.items():
+            if feature.value == name:
+                return feature
+        raise ValueError(f"{name} is not a valid station name")
