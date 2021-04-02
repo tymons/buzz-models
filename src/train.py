@@ -18,7 +18,7 @@ from utils.data_utils import filter_strlist, truncate_lists_to_smaller_size, rea
 
 
 def build_and_train_model(model_type, model_config, train_config: dict, train_loader, val_loader, feature_params_dict, model_output_folder,
-                             use_discriminator=False, discirminator_config=None, comet_tags=[], comet_api_key=None):
+                             use_discriminator=False, discirminator_config=None, comet_tags=[], comet_api_key=None, denoising_flag=False):
     """ function for building and training model """
     data_shape = train_loader.dataset[0][0][0].squeeze().shape
     logging.info(f'building model with data input shape of {data_shape}')
@@ -37,7 +37,8 @@ def build_and_train_model(model_type, model_config, train_config: dict, train_lo
         log_dict = {**model_params, **disc_params, **feature_params_dict}
         try:
             model = m.train_model(model, train_config, train_loader, val_loader, discriminator=discriminator, \
-                                    comet_params=log_dict, comet_tags=comet_tags, model_output_folder=model_output_folder, comet_api_key=comet_api_key)
+                                    comet_params=log_dict, comet_tags=comet_tags, model_output_folder=model_output_folder, comet_api_key=comet_api_key,
+                                    denoising=denoising_flag)
             logging.info('model train success!')
         except Exception:
             logging.error('model train fail!')
@@ -123,8 +124,12 @@ def main():
     log_labels = target_labels + background_labels + [args.feature]
 
     # get dataset and loaders
-    dataset, fparams_dict = SoundFeatureFactory.build_datasets(args.feature, target_filenames, target_labels, background_filenames=background_filenames, background_labels=background_labels)
-    train_loader, val_loader = SoundFeatureFactory.build_dataloaders(dataset, config['features'], config['learning'].get('batch_size', 32))
+    feature_config = config['features'][args.feature]
+    if denoising and not feature_config.get(['scale']):
+        logging.warning("you have specified denoising flag which trucates input to [0,1] and did not specified 'scale' option in feature config!")
+        
+    dataset, fparams_dict = SoundFeatureFactory.build_datasets(args.feature, target_filenames, target_labels, config['features'], background_filenames=background_filenames, background_labels=background_labels)
+    train_loader, val_loader = SoundFeatureFactory.build_dataloaders(dataset, config['learning'].get('batch_size', 32))
 
     # read comet ml api key from specified file
     comet_api_key = read_comet_api_key(args.comet_config) if args.comet_config else None
@@ -145,7 +150,8 @@ def main():
             discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
             build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
-                                    use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels, comet_api_key=comet_api_key)
+                                    denoising_flag=denoising, use_discriminator=args.discriminator, discirminator_config=discriminator_config,
+                                    comet_tags=log_labels, comet_api_key=comet_api_key)
 
     else:
         logging.info(f'single shot {args.model_type} configuration is active.')
@@ -154,7 +160,8 @@ def main():
         discriminator_config = config['model_architecture']['discriminator'] if args.discriminator else None
 
         build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
-                            use_discriminator=args.discriminator, discirminator_config=discriminator_config, comet_tags=log_labels, comet_api_key=comet_api_key)
+                            denoising_flag=denoising_flag, use_discriminator=args.discriminator, discirminator_config=discriminator_config, 
+                            comet_tags=log_labels, comet_api_key=comet_api_key)
 
 if __name__ == "__main__":
     main()
