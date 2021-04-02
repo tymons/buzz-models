@@ -71,7 +71,10 @@ class SpectrogramDataset(Dataset, Sound):
 
     def get_params(self):
         """ Method for returning feature params """
-        return self.__dict__
+        params = dict(self.__dict__)
+        params.pop('filenames')
+        params.pop('labels')
+        return params
 
     def read_item(self, idx):
         """ Function for getting item from Spectrogram dataset

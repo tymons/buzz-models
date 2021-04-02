@@ -86,7 +86,6 @@ class SoundIndiciesDataset(Dataset):
                 ADI index (float)
             """
             assert self.freq_step is not none
-            print(f'getting adi with freq_step: {self.freq_step}')
             sound_samples, sampling_rate = read_samples(filename, raw=True)
 
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
@@ -109,7 +108,6 @@ class SoundIndiciesDataset(Dataset):
             assert self.freq_step is not none
             
             sound_samples, sampling_rate = read_samples(filename, raw=True)
-            print(f'getting aei with freq_step: {self.freq_step}')
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
             max_freq = int((freqs[-1]+freqs[1]))
@@ -127,7 +125,6 @@ class SoundIndiciesDataset(Dataset):
                 tuple (ADI index, temporal spectreogram BI mean)
             """
             sound_samples, sampling_rate = read_samples(filename, raw=True)
-            print(f'getting bi')
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
             value, temporal_values = compute_BI(spectro, freqs, np.iinfo(sound_samples[0]).max, min_freq=20, max_freq=10000)

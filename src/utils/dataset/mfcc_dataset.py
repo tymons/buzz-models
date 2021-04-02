@@ -17,7 +17,10 @@ class MfccDataset(Dataset, Sound):
 
     def get_params(self):
         """ Method for returning feature params """
-        return self.__dict__
+        params = dict(self.__dict__)
+        params.pop('filenames')
+        params.pop('labels')
+        return params
 
     def __getitem__(self, idx):
         # read sound samples and label
@@ -27,7 +30,7 @@ class MfccDataset(Dataset, Sound):
         mfccs = librosa.feature.mfcc(y=sound_samples, sr=sampling_rate, n_fft=self.nfft, hop_length=self.hop_len, n_mfcc=self.n_mels)
         mfccs = mfccs.astype(np.float32)
         mfccs_avg = np.mean(mfccs, axis=1)
-        
+
         if self.scale:
             mfccs_avg = MinMaxScaler().fit_transform(mfccs_avg.reshape(-1, 1))
 

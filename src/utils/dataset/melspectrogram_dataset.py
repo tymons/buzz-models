@@ -33,7 +33,10 @@ class MelSpectrogramDataset(Dataset, Sound):
 
     def get_params(self):
         """ Method for returning feature params """
-        return self.__dict__
+        params = dict(self.__dict__)
+        params.pop('filenames')
+        params.pop('labels')
+        return params
 
     def __getitem__(self, idx):
         # read sound samples from file
@@ -45,10 +48,11 @@ class MelSpectrogramDataset(Dataset, Sound):
         if self.truncate:
             mel = adjust_matrix(mel, 2**closest_power_2(mel.shape[0]), 2**closest_power_2(mel.shape[1]))
 
+        initial_shape = mel.shape
         if self.scale:
-            initial_shape = mel.shape
-            mel = MinMaxScaler().fit_transform(mel.reshape(-1, 1)).reshape((1, *initial_shape)).astype(np.float32)
-
+            mel = MinMaxScaler().fit_transform(mel.reshape(-1, 1))
+        mel = mel.reshape((1, *initial_shape)).astype(np.float32)
+        
         return [mel], label
  
     def __len__(self):

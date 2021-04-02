@@ -87,8 +87,8 @@ def main():
     parser.add_argument('--config_file', default='config.json', type=str)
     parser.add_argument('--random_search', type=int, help="number of tries to find best architecture")
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
-    parser.add_argument('--model_output', type=str, default="output/models", help="folder for model output")
-    parser.add_argument('--comet_config', default='config.json', type=str)
+    parser.add_argument('--model_output', type=str, default=".", help="folder for model output")
+    parser.add_argument('--comet_config', default='.comet.config', type=str)
     parser.set_defaults(discriminator=False)
     parser.set_defaults(check_data=False)
     parser.set_defaults(denoising=False)
@@ -132,41 +132,37 @@ def main():
                                                                 background_filenames=background_filenames, background_labels=background_labels)
     train_loader, val_loader = SoundFeatureFactory.build_dataloaders(dataset, config['learning'].get('batch_size', 32))
 
-    for conc_data, labels in dataset:
-        print(conc_data[0][0])
-        break
+    # read comet ml api key from specified file
+    comet_api_key = read_comet_api_key(args.comet_config) if args.comet_config else None
 
-    # # read comet ml api key from specified file
-    # comet_api_key = read_comet_api_key(args.comet_config) if args.comet_config else None
+    if args.random_search:
+        logging.info(f'random search architecture configuration for model {args.model_type} is active.')
+        for sample_no in range(args.random_search):
+            # generate model config 
+            if args.model_type.startswith('conv'):
+                model_config = m.generate_conv_model_config(config['random_search']['model']['conv'], train_loader.dataset[0][0][0].squeeze().shape)
+            elif args.model_type != 'discriminator':
+                model_config = m.generate_fc_model_config(config['random_search']['model']['fc'])
+            else:
+                raise ValueError(f'model {args.model_type} not supported for random search!')
+            # generate random train config and merge with existing 
+            train_config = {**config['learning'], **m.generate_train_infos(config['random_search']['learning'])}
+            # generate random discriminator config if needed
+            discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
 
-    # if args.random_search:
-    #     logging.info(f'random search architecture configuration for model {args.model_type} is active.')
-    #     for sample_no in range(args.random_search):
-    #         # generate model config 
-    #         if args.model_type.startswith('conv'):
-    #             model_config = m.generate_conv_model_config(config['random_search']['model']['conv'], train_loader.dataset[0][0][0].squeeze().shape)
-    #         elif args.model_type != 'discriminator':
-    #             model_config = m.generate_fc_model_config(config['random_search']['model']['fc'])
-    #         else:
-    #             raise ValueError(f'model {args.model_type} not supported for random search!')
-    #         # generate random train config and merge with existing 
-    #         train_config = {**config['learning'], **m.generate_train_infos(config['random_search']['learning'])}
-    #         # generate random discriminator config if needed
-    #         discriminator_config = m.generate_discriminator_model_config(config['random_search']['model']['discriminator']) if args.discriminator else None
+            build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
+                                    denoising_flag=args.denoising, use_discriminator=args.discriminator, discirminator_config=discriminator_config,
+                                    comet_tags=log_labels, comet_api_key=comet_api_key)
 
-    #         build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
-    #                                 denoising_flag=denoising, use_discriminator=args.discriminator, discirminator_config=discriminator_config,
-    #                                 comet_tags=log_labels, comet_api_key=comet_api_key)
+    else:
+        logging.info(f'single shot {args.model_type} configuration is active.')
+        model_config = config['model_architecture'][args.model_type]
+        train_config = config['learning']
+        discriminator_config = config['model_architecture']['discriminator'] if args.discriminator else None
 
-    # else:
-    #     logging.info(f'single shot {args.model_type} configuration is active.')
-    #     model_config = config['model_architecture'][args.model_type]
-    #     train_config = config['learning']
-    #     discriminator_config = config['model_architecture']['discriminator'] if args.discriminator else None
-
-    #     build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
-    #                         denoising_flag=denoising_flag, use_discriminator=args.discriminator, discirminator_config=discriminator_config, 
-    #                         comet_tags=log_labels, comet_api_key=comet_api_key)
+        build_and_train_model(args.model_type, model_config, train_config, train_loader, val_loader, fparams_dict, args.model_output,
+                            denoising_flag=args.denoising, use_discriminator=args.discriminator, discirminator_config=discriminator_config, 
+                            comet_tags=log_labels, comet_api_key=comet_api_key)
 
 if __name__ == "__main__":
     main()

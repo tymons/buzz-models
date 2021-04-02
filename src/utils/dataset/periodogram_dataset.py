@@ -21,7 +21,10 @@ class PeriodogramDataset(Dataset, Sound):
         
     def get_params(self):
         """ Method for returning feature params """
-        return self.__dict__
+        params = dict(self.__dict__)
+        params.pop('filenames')
+        params.pop('labels')
+        return params
 
     def __getitem__(self, idx):
         """ Method for pytorch dataloader """

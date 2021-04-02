@@ -166,7 +166,7 @@ def permutate_latent(latents_batch, inplace=False):
 
 def setup_comet_ml_experiment(api_key, project_name, experiment_name, parameters, tags):
     """ Function for setting up comet ml experiment """
-    experiment = Experiment(api_key=api_key, auto_output_logging=False, project_name=project_name, auto_metric_logging=False)
+    experiment = Experiment(api_key=api_key, display_summary_level=0, project_name=project_name, auto_metric_logging=False)
     experiment.set_name(experiment_name)
     experiment.log_parameters(parameters)
     experiment.add_tags(tags)
@@ -210,14 +210,21 @@ def _batch_transform(batch, standarize, normalize, noise=False, noise_factor=0.3
         batch: transformated batc 
     """
     if noise:
-        batch = batch + noise_factor * torch.randn(*batch.shape)
-        batch = np.clip(batch, 0., 1.)
+        print('noise')
     if standarize:
+        print('stan')
         batch = batch_standarize(batch)
     if normalize:
+        print('norm')
         batch = batch_normalize(batch)
-    
     return batch
+
+def _batch_addnoise(batch, noise_factor=0.3):
+    """ Function for adding noise to batch """
+    noised_batch_input = batch + noise_factor * torch.randn(*batch.shape)
+    noised_batch_input = np.clip(noised_batch_input, 0., 1.)
+    return noised_batch_input
+
 
 def train_model(model, learning_params, train_loader, val_loader, discriminator=None, denoising=False,
                     comet_params={}, comet_tags=[], model_output_folder="output", comet_api_key=None):
@@ -254,8 +261,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
 
     # setup comet ml experiment
     learning_params_log = {f"LEARNING_{key}": val for key, val in learning_params.items()}
-    experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
-                                            parameters={**learning_params_log, **comet_params}, tags=comet_tags)
+    # experiment = setup_comet_ml_experiment(comet_api_key, f"{model_name.lower()}-bee-sound", f"{model_name}-{time.strftime('%Y%m%d-%H%M%S')}",
+    #                                         parameters={**learning_params_log, **comet_params}, tags=comet_tags)
 
     # fixed adam optimizer with hyperparameters
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_params['learning_rate'], weight_decay=learning_params['weight_decay'])
@@ -270,7 +277,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
     # best validation score
     best_val_loss = -1
     # model checkpoint filename
-    checkpoint_file = f'{experiment.get_name()}-checkpoint.pth'
+    checkpoint_file = f'temp-checkpoint.pth'
+    # checkpoint_file = f'{experiment.get_name()}-checkpoint.pth'
     checkpoint_full_path = os.path.join(model_output_folder, checkpoint_file)
 
     # pass model to gpu if is available
@@ -292,16 +300,20 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             discriminator.train()
 
         for concatenated_batch, label in train_loader:
-            concatenated_input_batch = []
+            concatenated_input_batch = [None] * len(concatenated_batch)
             for position, batch in enumerate(concatenated_batch):
                 # as every dataset should return list (one or two elements - depends on contrastive learning or not)
-                # we should every element normalize/standarzie and pass to gpu
-                batch = _batch_transform(batch, learning_params['batch_standarize'], learning_params['batch_normalize'], \
-                                            denoising, learning_params['denoising_factor'])
-                concatenated_input_batch[position] = batch.to_device(device)
+                # we should every element normalize/standarzie or add noise for denosing autoencoder and pass to gpu
+                transformed_batch = _batch_transform(batch, learning_params['batch_standarize'], learning_params['batch_normalize'])
+                concatenated_batch[position] = transformed_batch.to(device)
+                if denoising:
+                    concatenated_input_batch[position] = _batch_addnoise(transformed_batch, learning_params['denoising_factor']).to(device)
+                else:
+                    concatenated_input_batch[position] = concatenated_batch[position]
+                
 
             optimizer.zero_grad()
-            output_dict = model(*concatenated_input_batch)
+            output_dict = model(*concatenated_input_batch)      
             if discriminator is None:
                 loss = loss_fun(*concatenated_batch, output_dict)
             else:
@@ -310,7 +322,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             optimizer.step()
 
             # log comet ml metric and watch avg losses
-            experiment.log_metric("batch_train_loss", loss.item(), step=step)
+            # experiment.log_metric("batch_train_loss", loss.item(), step=step)
             train_loss.append(loss.item())
 
             if discriminator:
@@ -325,7 +337,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
                 optimizer_discriminator.step()
 
                 # log comet ml metric
-                experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
+                # experiment.log_metric("discriminator_train_loss", dloss.item(), step=step)
 
             step = step + 1
 
@@ -335,13 +347,16 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         model.eval()
         step = 1
         for concatenated_val_batch, label in val_loader:
-            concatenated_input_val_batch = []
+            concatenated_input_val_batch = [None] * len(concatenated_val_batch)
             for position, batch_val in enumerate(concatenated_val_batch):
                 # as every dataset should return list (one or two elements - depends on contrastive learning or not)
                 # we should every element normalize/standarzie and pass to gpu
-                batch_val = _batch_transform(batch_val, learning_params['batch_standarize'], learning_params['batch_normalize'], \
-                                            denoising, learning_params['data_noise_factor'])
-                concatenated_input_val_batch[position] = batch_val.to_device(device)
+                transformed_val_batch = _batch_transform(batch_val, learning_params['batch_standarize'], learning_params['batch_normalize'])
+                concatenated_val_batch[position] = transformed_val_batch.to(device)
+                if denoising:
+                    concatenated_input_val_batch[position] = _batch_addnoise(transformed_val_batch, learning_params['denoising_factor']).to(device)
+                else:
+                    concatenated_input_val_batch[position] = concatenated_val_batch[position]
             
             val_output_dict = model(*concatenated_input_val_batch)
             if discriminator is None:
@@ -351,7 +366,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
             val_loss.append(vloss.item())
 
             # log comet ml metric
-            experiment.log_metric("batch_val_loss", vloss.item(), step=step)
+            # experiment.log_metric("batch_val_loss", vloss.item(), step=step)
             step = step + 1
 
         # print training/validation statistics
@@ -361,8 +376,8 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
 
         # print avg training statistics
         logging.info(f'Epoch [{epoch}/{learning_params["epochs"]}], LOSS: {train_loss:.6f}, VAL_LOSS: {val_loss:.6f}')
-        experiment.log_metric("train_loss", train_loss, step=epoch)
-        experiment.log_metric("val_loss", val_loss, step=epoch)
+        # experiment.log_metric("train_loss", train_loss, step=epoch)
+        # experiment.log_metric("val_loss", val_loss, step=epoch)
 
         if val_loss < best_val_loss or best_val_loss == -1:
             # new checkpoint 
