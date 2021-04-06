@@ -11,7 +11,7 @@ from enum import Enum
 from scipy.io import wavfile
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from typing import Callable
-
+from datetime import datetime
 
 def flatten(x):
     """
@@ -83,6 +83,16 @@ def get_valid_sounds_datalist(folder_list, validfile_filename):
 
     return sound_filenames
 
+
+def filter_bydatetime(str_list, start, end):
+    """ Function for filtering sound samples names by date time """
+    def _is_str_indatetimerage(elem):
+        """ closure for filter_bydatetiem """
+        elem = "-".join(elem.split(os.sep)[-1].split('-')[1:]).split('.')[0]
+        datetime_elem = datetime.strptime(elem, '%Y-%m-%dT%H-%M-%S')
+        return datetime_elem >= start and datetime_elem <= end
+
+    return list(filter(_is_str_indatetimerage, str_list))
 
 def filter_strlist(input_str_list, *names):
     """ Filter sound_filenames as it returns only these files which includes hive_names

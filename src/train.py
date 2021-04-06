@@ -14,7 +14,7 @@ from utils.data_utils import create_valid_sounds_datalist, get_valid_sounds_data
 from utils.feature_factory import SoundFeatureFactory, SoundFeatureType
 from utils.model_factory import HiveModelFactory
 
-from utils.data_utils import filter_strlist, truncate_lists_to_smaller_size, read_comet_api_key
+from utils.data_utils import filter_strlist, truncate_lists_to_smaller_size, read_comet_api_key, filter_bydatetime
 
 
 def build_and_train_model(model_type, model_config, train_config: dict, train_loader, val_loader, feature_params_dict, model_output_folder,
@@ -89,6 +89,8 @@ def main():
     parser.add_argument('--discriminator', dest='discriminator', action='store_true')
     parser.add_argument('--model_output', type=str, default=".", help="folder for model output")
     parser.add_argument('--comet_config', default='.comet.config', type=str)
+    parser.add_argument('--date', nargs=2, metavar=('start', 'end'), type=lambda s: datetime.strptime(s, '%Y-%m-%dT%H-%M-%S'),
+                         help='datetime from start format: YYYY-MM-DDThh:mm:ss')
     parser.set_defaults(discriminator=False)
     parser.set_defaults(check_data=False)
     parser.set_defaults(denoising=False)
@@ -113,8 +115,15 @@ def main():
 
     # read sound filenames from 'valid-files.txt' files
     sound_filenames, labels = get_soundfilenames_and_labels(args.root_folder, 'valid-files.txt', args.check_data)
+    if args.date:
+        start, end = args.date
+        assert start < end, "start datetime should be before end datetime!"
+        logging.info(f'truncating our data to specifiec datetime range from start({start}) to end({end})')
+        sound_filenames = filter_bydatetime(sound_filenames, start, end)
+        
     target_filenames, target_labels = (filter_strlist(sound_filenames, *args.target), args.target) if args.target else (sound_filenames, labels)
     background_filenames, background_labels = (filter_strlist(sound_filenames, *args.background), args.background) if args.background else ([], [])
+
     if background_filenames:
         # so we have contrastive learning and target/background has to have the same size
         target_filenames, background_filenames = truncate_lists_to_smaller_size(target_filenames, background_filenames)
