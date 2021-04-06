@@ -128,4 +128,4 @@ measurements/
 .comet.config
 src/output/
 .vscode
-
+*.pth
