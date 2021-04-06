@@ -90,7 +90,7 @@ class SoundFeatureFactory():
         return dataset, feature_params_dict
 
     @classmethod
-    def build_dataloaders(cls, dataset, batch_size, ratio=0.15, num_workers=4):
+    def build_dataloaders(cls, dataset, batch_size, ratio=0.15, num_workers=0):
         """ Function for getting dataloaders 
         
         Parameters:
