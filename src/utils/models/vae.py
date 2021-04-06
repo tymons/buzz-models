@@ -16,13 +16,13 @@ def vae_loss(data_input, model_output_dict):
     :param model_output_dict: dictionary with target, mean and log_var (output from forward method)
     :return 
     """
-    MSE = F.mse_loss(data_input, model_output_dict['target'], reduction='sum')
+    MSE = F.mse_loss(data_input, model_output_dict['target'], reduction='mean')
     KLD = _kld_loss(model_output_dict['mean'], model_output_dict['logvar'])
     return (MSE + KLD)
 
 def _kld_loss(mean, log_var):
     """ KLD loss for normal distribution"""
-    return -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
+    return torch.mean(-0.5 * torch.sum(1 + log_var - mean ** 2 - log_var.exp())).item()
     
 def reparameterize(mu, log_var):
     """ Function for reparametrization trick """
