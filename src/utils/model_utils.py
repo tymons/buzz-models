@@ -11,12 +11,12 @@ import numpy as np
 from torch.utils import data as tdata
 from torch import nn
 
-from utils.data_utils import batch_normalize, batch_standarize, batch_addnoise
-from utils.models.vae import vae_loss
-from utils.models.conv_ae import conv_mlp_layer_shape
-from utils.models.discriminator import discriminator_loss
-from utils.models.ae import ae_loss_fun
-from utils.models.cvae import cvae_loss
+from .data_utils import batch_normalize, batch_standarize, batch_addnoise
+from .models.vae import vae_loss
+from .models.conv_ae import conv_mlp_layer_shape
+from .models.discriminator import discriminator_loss
+from .models.ae import ae_loss_fun
+from .models.cvae import cvae_loss
 
 
 def generate_discriminator_model_config(range_config):
@@ -183,11 +183,26 @@ def _model_save(model, optimizer, loss, epoch, checkpoint_full_path, discriminat
                 'discriminator_optimizer_state_dict': discriminator_optimizer.state_dict() if discriminator_optimizer else None
                 }, checkpoint_full_path)
 
-def _model_load(model, optimizer, checkpoint_full_path, discriminator=None, discriminator_optimizer=None):
-    """ Function for loading checkpoint """
-    checkpoint = torch.load(checkpoint_full_path)
+def model_load(checkpoint_filepath, model, optimizer=None, discriminator=None, discriminator_optimizer=None):
+    """ Function for loading checkpoint 
+    
+    Parameters:
+        checkpoint_filepath (str): filepath to checkpoint
+        model (nn.Module): object model where weights will be loaded
+        optimizer (Optimizer): optimizer
+        discriminator (nn.Module): discriminator 
+        discriminator_optimizer (Optimizer): optimizer for discriminator
+    Returns:
+        (int, float) (tuple): last epoch and last loss
+    """
+    checkpoint = torch.load(checkpoint_filepath)
+    if any([key.startswith('module') for key in checkpoint['model_state_dict'].keys()]):
+        # conver model to dataparallel if we trained our model on many gpus
+        model = nn.DataParallel(model)
+
     model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    if optimizer:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch = checkpoint['epoch']
     loss = checkpoint['loss']
     if discriminator and discriminator_optimizer:
@@ -383,7 +398,7 @@ def train_model(model, learning_params, train_loader, val_loader, discriminator=
         train_loss = []
         val_loss = []
     
-    epoch, _ = _model_load(model, optimizer, checkpoint_full_path, discriminator=discriminator, \
+    epoch, _ = model_load(checkpoint_full_path, model, optimizer, discriminator=discriminator, \
                                                             discriminator_optimizer=optimizer_discriminator)
     logging.info(f"=> loaded model based on {checkpoint_full_path} checkpoint file, saved on {epoch} epoch.")
     return model
