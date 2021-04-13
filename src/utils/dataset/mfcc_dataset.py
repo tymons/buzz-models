@@ -2,9 +2,9 @@ import numpy as np
 import librosa
 
 from torch.utils.data import Dataset
-from utils.dataset.sound import Sound
 from sklearn.preprocessing import MinMaxScaler
 
+from .sound import Sound
 
 class MfccDataset(Dataset, Sound):
     """ MFCC dataset - here we treat sound as stationary signal by taking mean of melspectrogram """

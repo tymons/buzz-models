@@ -9,7 +9,7 @@ from scipy.fftpack import fft, fftfreq
 from scipy import signal, fftpack
 from sklearn.preprocessing import MinMaxScaler
 
-from utils.dataset.sound import Sound
+from .sound import Sound
 
 class PeriodogramDataset(Dataset, Sound):
     """ Periodogram dataset """
