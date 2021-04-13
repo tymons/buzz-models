@@ -4,13 +4,13 @@ import traceback
 
 from torchsummary import summary
 
-from utils.models.vae import VAE
-from utils.models.cvae import cVAE
-from utils.models.conv_vae import ConvolutionalVAE
-from utils.models.conv_cvae import ConvolutionalCVAE
-from utils.models.ae import Autoencoder
-from utils.models.conv_ae import ConvolutionalAE
-from utils.models.discriminator import Discriminator
+from .models.vae import VAE
+from .models.cvae import cVAE
+from .models.conv_vae import ConvolutionalVAE
+from .models.conv_cvae import ConvolutionalCVAE
+from .models.ae import Autoencoder
+from .models.conv_ae import ConvolutionalAE
+from .models.discriminator import Discriminator
 
 
 def model_check(model, input_shape):

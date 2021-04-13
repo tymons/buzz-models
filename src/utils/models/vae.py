@@ -3,8 +3,8 @@ import torch.nn.functional as F
 
 from torch import nn
 
-from utils.data_utils import batch_normalize, batch_standarize
-from utils.models.ae import Encoder, Decoder
+from ..data_utils import batch_normalize, batch_standarize
+from .ae import Encoder, Decoder
 
 
 def vae_loss(data_input, model_output_dict):

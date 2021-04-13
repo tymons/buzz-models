@@ -3,12 +3,12 @@ import logging
 from enum import Enum
 from torch.utils.data import DataLoader, random_split
 
-from utils.dataset.periodogram_dataset import PeriodogramDataset
-from utils.dataset.spectrogram_dataset import SpectrogramDataset
-from utils.dataset.mfcc_dataset import MfccDataset
-from utils.dataset.melspectrogram_dataset import MelSpectrogramDataset
-from utils.dataset.bioacustics_indicies.sound_indicies_dataset import SoundIndiciesDataset
-from utils.dataset.double_feature_dataset import DoubleFeatureDataset 
+from .dataset.periodogram_dataset import PeriodogramDataset
+from .dataset.spectrogram_dataset import SpectrogramDataset
+from .dataset.mfcc_dataset import MfccDataset
+from .dataset.melspectrogram_dataset import MelSpectrogramDataset
+from .dataset.bioacustics_indicies.sound_indicies_dataset import SoundIndiciesDataset
+from .dataset.double_feature_dataset import DoubleFeatureDataset 
 
 class SoundFeatureFactory():        
     """ Factory for data loaders """
@@ -123,4 +123,4 @@ class SoundFeatureType(Enum):
         for _, feature in SoundFeatureType.__members__.items():
             if feature.value == name:
                 return feature
-        raise ValueError(f"{name} is not a valid station name")
+        raise ValueError(f"{name} is not a valid feature name")

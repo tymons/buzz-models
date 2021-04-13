@@ -1,9 +1,9 @@
 import os
 from enum import Enum
 
-from utils.dataset.spectrogram_dataset import calculate_spectrogram
-from utils.dataset.sound import read_samples
-from utils.dataset.bioacustics_indicies.compute_indice import compute_ACI, compute_AEI, compute_BI, compute_spectrogram
+from ..spectrogram_dataset import calculate_spectrogram
+from ..sound import read_samples
+from .compute_indice import compute_ACI, compute_AEI, compute_BI, compute_spectrogram
 
 from torch.utils.data import Dataset
 

@@ -26,6 +26,7 @@ class Autoencoder(nn.Module):
         y = self.decoder(y)
         return {'target': y}
 
+
 class Encoder(nn.Module):
     """ Class for encoder """
     def __init__(self, layer_sizes, input_size):

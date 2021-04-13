@@ -2,8 +2,8 @@ import torch
 
 from torch import nn
 
-from utils.models.ae import Decoder, Encoder
-from utils.models.vae import reparameterize
+from .ae import Decoder, Encoder
+from .vae import reparameterize
 
 from comet_ml import Experiment
 
