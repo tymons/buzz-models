@@ -3,8 +3,8 @@ import math
 import numpy as np
 
 from torch import nn
-from utils.models.vae import reparameterize
-from utils.models.conv_ae import ConvolutionalDecoder, ConvolutionalEncoder, conv_mlp_layer_shape
+from .vae import reparameterize
+from .conv_ae import ConvolutionalDecoder, ConvolutionalEncoder, conv_mlp_layer_shape
 
 class ConvolutionalVAE(nn.Module):
     """ Class for convolutional variational autoencoder """
@@ -36,3 +36,8 @@ class ConvolutionalVAE(nn.Module):
         recon_x = self.decoder(latent)
 
         return {'target': recon_x, 'mean': means, 'logvar': log_var}
+
+    def inference(self, x):
+        z = self.encoder(x)
+        z_mean, z_var = self.linear_means(z), self.linear_log_var(z)
+        return reparameterize(z_mean, z_var)

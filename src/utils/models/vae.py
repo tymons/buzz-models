@@ -57,4 +57,10 @@ class VAE(nn.Module):
         recon_x = self.decoder(z)
 
         return {'target': recon_x, 'mean': means, 'logvar': log_var}
+
+    def inference(self, x):
+        z = self.encoder(x)
+        z_mean, z_var = self.linear_means(z), self.linear_log_var(z)
+        return reparameterize(z_mean, z_var)
+        
     

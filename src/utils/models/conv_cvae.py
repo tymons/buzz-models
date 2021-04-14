@@ -4,8 +4,8 @@ import logging
 
 from torch import nn
 
-from utils.models.conv_ae import ConvolutionalDecoder, ConvolutionalEncoder, conv_mlp_layer_shape
-from utils.models.vae import reparameterize
+from .conv_ae import ConvolutionalDecoder, ConvolutionalEncoder, conv_mlp_layer_shape
+from .vae import reparameterize
 
 
 class ConvolutionalCVAE(nn.Module):
@@ -61,4 +61,14 @@ class ConvolutionalCVAE(nn.Module):
                 'bg_qz_log_var': bg_z_log_var,
                 'latent_qs_target': tg_s,       # we need this for disentangle and ensure that s and z distributions 
                 'latent_qz_target': tg_z}       # for target are independent
+
+    def inference_z(self, x):
+        z = self.z_encoder(x)
+        z_mean, z_var = self.z_linear_means(z), self.z_linear_log_var(z)
+        return reparameterize(z_mean, z_var)
+        
+    def inference_s(self, x):
+        s = self.s_encoder(x)
+        s_mean, s_var = self.s_linear_means(s), self.s_linear_log_var(s)
+        return reparameterize(s_mean, s_var)
 

@@ -74,10 +74,15 @@ class ConvolutionalAE(nn.Module):
         self.decoder = ConvolutionalDecoder(decoder_conv_sizes, decoder_mlp_sizes, latent_size, connector_shape=conv_to_mlp_shape)
 
     def forward(self, x):
+        """ forward method for neural network """
         y = self.encoder(x)
         y = self.decoder(y)
         return {'target': y}
 
+    def inference(self, x):
+        """ Method for latent space inference """
+        y = self.encoder(x)
+        return y
 
 class ConvolutionalEncoder(nn.Module):
     """ Class for conv encoder without last latent layer as this class should be used in both vae and ae """
