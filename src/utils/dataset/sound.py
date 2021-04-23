@@ -90,3 +90,13 @@ class Sound(ABC):
             label = -1
 
         return sound_samples, sampling_rate, label
+    
+    def hour_for_fileid(self, idx):
+        """ Wrapper for reading filename """
+        filename = self.filenames[idx]
+        return int(filename.split('\\')[-1].split('T')[-1].split('.')[0].split('-')[0])
+
+    def hivename_for_fileid(self, idx):
+        """ Method for extracting hivename based on file id """
+        filename = self.filenames[idx]
+        return filename.split('\\')[-2].split('_')[0]

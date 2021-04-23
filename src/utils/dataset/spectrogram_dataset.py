@@ -97,11 +97,6 @@ class SpectrogramDataset(Dataset, Sound):
         """ Wrapper for getting item from Spectrogram dataset """
         (data, _, _), labels = self.read_item(idx)
         return [data], labels
-    
-    def get_filename_hour(self, idx):
-        """ Wrapper for reading filename """
-        filename = self.filenames[idx]
-        return int(filename.split('\\')[-1].split('T')[-1].split('.')[0].split('-')[0])
 
     def __len__(self):
         return len(self.filenames)
