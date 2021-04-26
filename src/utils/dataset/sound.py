@@ -1,6 +1,7 @@
 import os
 import numpy as np
 
+from datetime import datetime
 from scipy.io import wavfile
 from abc import ABC, abstractmethod
 
@@ -93,10 +94,14 @@ class Sound(ABC):
     
     def hour_for_fileid(self, idx):
         """ Wrapper for reading filename """
-        filename = self.filenames[idx]
-        return int(filename.split('\\')[-1].split('T')[-1].split('.')[0].split('-')[0])
+        return datetime_for_fileid(idx).hour
 
     def hivename_for_fileid(self, idx):
         """ Method for extracting hivename based on file id """
         filename = self.filenames[idx]
         return filename.split('\\')[-2].split('_')[0]
+
+    def datetime_for_fileid(self, idx):
+        """ Wrapper for reading datetime based on fileid """
+        filename = self.filenames[idx]
+        return datetime.strptime('-'.join(filename.split('\\')[-1].split('.')[0].split('-')[1:]), '%Y-%m-%dT%H-%M-%S')
