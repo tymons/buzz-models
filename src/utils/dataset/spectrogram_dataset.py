@@ -52,7 +52,7 @@ def calculate_spectrogram(samples, sampling_rate, nfft, hop_len, fmax=None, scal
 
 class SpectrogramDataset(Dataset, Sound):
     """ Spectrogram dataset """
-    def __init__(self, filenames, hives, nfft, hop_len, scale=True, fmax=None, truncate_power_two=False):
+    def __init__(self, filenames, hives, nfft, hop_len, scale=True, scale_db=True, fmax=None, truncate_power_two=False):
         """ Constructor for Sepctrogram Dataset
 
         Parameters:
@@ -60,6 +60,8 @@ class SpectrogramDataset(Dataset, Sound):
             hives (list): list of strings with hive names as it will server as lables
             nfft (int): how many samples for nfft
             hop_len (int): overlapping, samples for hop to next fft
+            scale (bool): should scale to 0-1 range
+            scale_db (bool): should scale to db scale
             fmax (int): constraint on maximum frequency
         """
         Sound.__init__(self, filenames, hives)
@@ -68,6 +70,7 @@ class SpectrogramDataset(Dataset, Sound):
         self.fmax = fmax
         self.truncate = truncate_power_two
         self.scale = scale
+        self.scale_db = scale_db
 
     def get_params(self):
         """ Method for returning feature params """
@@ -87,7 +90,7 @@ class SpectrogramDataset(Dataset, Sound):
         """
         sound_samples, sampling_rate, label = Sound.read_sound(self, idx)
         spectrogram_db, frequencies, times = calculate_spectrogram(sound_samples, sampling_rate, self.nfft, \
-                                                                     self.hop_len, self.fmax, scale=self.scale)
+                                                                     self.hop_len, self.fmax, scale=self.scale, db_scale=self.scale_db)
         if self.truncate:
             spectrogram_db = adjust_matrix(spectrogram_db, 2**closest_power_2(spectrogram_db.shape[0]), 2**closest_power_2(spectrogram_db.shape[1]))
 

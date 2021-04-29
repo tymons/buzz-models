@@ -18,8 +18,9 @@ class SoundFeatureFactory():
         hop_len = features_params_dict.get('hop_len', (4096//3)+30)
         fmax = features_params_dict.get('fmax', 2750)
         should_scale = features_params_dict.get('scale', True)
+        should_scale_db = features_params_dict.get('scale', True)
 
-        logging.info(f'building spectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), fmax({fmax}), min_max_scale({should_scale})')
+        logging.info(f'building spectrogram dataset with params: nfft({nfft}), hop_len({hop_len}), fmax({fmax}), min_max_scale({should_scale}), db_scale({should_scale_db})')
         return SpectrogramDataset(sound_filenames, labels, nfft=nfft, hop_len=hop_len, scale=should_scale, fmax=fmax, truncate_power_two=True)
 
     def _get_melspectrogram_dataset(sound_filenames, labels, features_params_dict):
