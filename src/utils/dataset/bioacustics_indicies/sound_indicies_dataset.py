@@ -1,9 +1,10 @@
 import os
+import numpy as np
 from enum import Enum
 
 from .. import sound
 from ..spectrogram_dataset import calculate_spectrogram
-from .compute_indice import compute_ACI, compute_AEI, compute_BI, compute_spectrogram
+from .compute_indice import compute_ACI, compute_ADI, compute_AEI, compute_BI, compute_spectrogram
 
 from torch.utils.data import Dataset
 
@@ -90,8 +91,8 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             assert self.freq_step is not None
             sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
 
-            spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
-                                                                                                # as librosa implementatin from calculate_spectrogram need floats
+            spectrogram, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
+                                                                                                    # as librosa implementatin from calculate_spectrogram need floats
             max_freq = int((freqs[-1]+freqs[1]))
             value = compute_ADI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), db_threshold=-50, \
                                     max_freq=max_freq, freq_step=self.freq_step)
@@ -110,8 +111,8 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             assert self.freq_step is not None
             sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
 
-            spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
-                                                                                                # as librosa implementatin from calculate_spectrogram need floats
+            spectrogram, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
+                                                                                                    # as librosa implementatin from calculate_spectrogram need floats
             max_freq = int((freqs[-1]+freqs[1]))
             value = compute_AEI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), db_threshold=-50, \
                                     max_freq=max_freq, freq_step=self.freq_step)
