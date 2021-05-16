@@ -94,7 +94,7 @@ class Sound(ABC):
     
     def hour_for_fileid(self, idx):
         """ Wrapper for reading filename """
-        return datetime_for_fileid(idx).hour
+        return self.datetime_for_fileid(idx).hour
 
     def hivename_for_fileid(self, idx):
         """ Method for extracting hivename based on file id """

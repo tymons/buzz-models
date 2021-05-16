@@ -55,9 +55,8 @@ class SoundFeatureFactory():
 
     def _get_indicies_dataset(sound_filenames, labels, features_params_dict):
         """ Function for getting indicies from sounds """
-        sound_indicies_params = features_params_dict.get('sound_indicies', {})
-        indicator_type = sound_indicies_params.get('type', 'aci')
-        config = sound_indicies_params.get('config', {'j_samples': 512})
+        indicator_type = features_params_dict.get('type', 'aci')
+        config = features_params_dict.get('config', {'j_samples': 512})
 
         logging.info(f'building sound bio indicies dataset with params: type({indicator_type}), config({config})')
         return SoundIndiciesDataset(sound_filenames, labels, SoundIndiciesDataset.SoundIndicator(indicator_type), **config)

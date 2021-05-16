@@ -1,13 +1,13 @@
 import os
 from enum import Enum
 
+from .. import sound
 from ..spectrogram_dataset import calculate_spectrogram
-from ..sound import read_samples
 from .compute_indice import compute_ACI, compute_AEI, compute_BI, compute_spectrogram
 
 from torch.utils.data import Dataset
 
-class SoundIndiciesDataset(Dataset):
+class SoundIndiciesDataset(Dataset, sound.Sound):
     def __init__(self, filenames, hives, indicator_type, nfft, hop_len, \
                     j_samples=None, adi_freq_step=None, scale_db=False):
         """
@@ -21,6 +21,8 @@ class SoundIndiciesDataset(Dataset):
             j_samples (int): samples per bin in ACI calculation
 
         """
+        sound.Sound.__init__(self, filenames, hives)
+
         self.filenames = filenames              # sound filenames
         self.labels = hives                     # labels
         self.indicator_type = indicator_type    # ACI, ADI, AEI, see SoundIndicator class
@@ -37,7 +39,7 @@ class SoundIndiciesDataset(Dataset):
     def get_params(self):
         """ Function for returning params """
         params = { 'indicator_type': self.indicator_type }
-        if self.indicator_type == SoundIndicator.ACI:
+        if self.indicator_type == self.SoundIndicator.ACI:
             aci_params = {
                 'aci_nfft': self.nfft,
                 'aci_hop_len': self.hop_len,
@@ -45,7 +47,7 @@ class SoundIndiciesDataset(Dataset):
                 'aci_j_samples': self.j_samples
             }
             params = {**params, **aci_params}
-        elif self.indicator_type == SoundIndicator.AEI or self.indicator_type == SoundIndicator.ADI:
+        elif self.indicator_type == self.SoundIndicator.AEI or self.indicator_type == self.SoundIndicator.ADI:
             adi_aei_params = {
                 'freq_step': self.freq_step
             }
@@ -67,14 +69,14 @@ class SoundIndiciesDataset(Dataset):
             """
             assert self.j_samples is not None      
 
-            sound_samples, sampling_rate = read_samples(filename)
+            sound_samples, sampling_rate, label = sound.Sound.read_sound(self, idx, raw=False)
             spectrogram_db, freqs, times = calculate_spectrogram(sound_samples, sampling_rate, nfft=self.nfft, \
                                                                     hop_len=self.hop_len, scale=False, db_scale=self.scale_db)
             spectrogram_db = spectrogram_db.squeeze()
 
             value, temporal_values = compute_ACI(spectrogram_db, j_bin=self.j_samples)
 
-            return (value, temporal_values)
+            return (value, temporal_values), label
 
         def get_ADI():
             """ Function for ADI value calculation 
@@ -85,8 +87,8 @@ class SoundIndiciesDataset(Dataset):
             Returns:
                 ADI index (float)
             """
-            assert self.freq_step is not none
-            sound_samples, sampling_rate = read_samples(filename, raw=True)
+            assert self.freq_step is not None
+            sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
 
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
@@ -94,7 +96,7 @@ class SoundIndiciesDataset(Dataset):
             value = compute_ADI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), db_threshold=-50, \
                                     max_freq=max_freq, freq_step=self.freq_step)
 
-            return value
+            return value, label
 
         def get_AEI():
             """ Function for AEI value calculation 
@@ -105,16 +107,16 @@ class SoundIndiciesDataset(Dataset):
             Returns:
                 AEI index (float)
             """
-            assert self.freq_step is not none
-            
-            sound_samples, sampling_rate = read_samples(filename, raw=True)
+            assert self.freq_step is not None
+            sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
+
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
             max_freq = int((freqs[-1]+freqs[1]))
             value = compute_AEI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), db_threshold=-50, \
                                     max_freq=max_freq, freq_step=self.freq_step)
 
-            return value
+            return value, label
 
         def get_BI():
             """ Function for BI calculation 
@@ -124,27 +126,22 @@ class SoundIndiciesDataset(Dataset):
             Returns:
                 tuple (ADI index, temporal spectreogram BI mean)
             """
-            sound_samples, sampling_rate = read_samples(filename, raw=True)
+            sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
+
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
             value, temporal_values = compute_BI(spectro, freqs, np.iinfo(sound_samples[0]).max, min_freq=20, max_freq=10000)
 
-        # read sound samples from file
-        filename = self.filenames[idx]
-        hive_name = filename.split(os.sep)[-2].split("_")[0]
-        try:
-            label = next(index for index, name in enumerate(self.labels) if name == hive_name)
-        except StopIteration as e:
-            label = -1
+            return (value, temporal_values), label
 
-        feature = {
+        feature, label = {
             self.SoundIndicator.ACI:    get_ACI,  
             self.SoundIndicator.ADI:    get_ADI, 
             self.SoundIndicator.AEI:    get_AEI,
             self.SoundIndicator.BI:     get_BI,
         }.get(self.indicator_type)()
 
-        return (feature, label)
+        return [feature], label
     
     def __len__(self):
         return len(self.filenames)
