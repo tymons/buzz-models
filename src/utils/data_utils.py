@@ -3,6 +3,8 @@ import glob
 import math
 import logging
 import collections
+import requests
+import pandas as pd
 
 import torch
 import numpy as np
@@ -206,3 +208,19 @@ def pointinpolygon(x,y,poly):
         p1x,p1y = p2x,p2y
 
     return inside
+
+def get_temperature_humidity_openweather(x, api_key, lat, long):
+    """ Function for making call to openeather api """
+    start_utc = int((x['datetime'] - pd.Timedelta(hours=2)).timestamp())
+    print(f'making api call for: {start_utc}...', end=' ')
+    
+    payload = {'lat': str(lat), 'lon': str(long), 'type': 'hour', 'appid': api_key, 'start': str(start_utc), 'cnt': '1'}
+    r = requests.get(f'http://history.openweathermap.org/data/2.5/history/city', params=payload)
+    if r.status_code == 200:
+        print('success!')
+        r_json = r.json()
+        x['outdoor_temperature'] = round(r_json['list'][0]['main']['temp'] - 273.15, 2)
+        x['outdoor_humidity'] = round(r_json['list'][0]['main']['humidity'], 2)
+        return x
+    else:
+        raise ValueError(f"Error at http call: {r.text}")
