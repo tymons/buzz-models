@@ -34,7 +34,8 @@ class PeriodogramDataset(Dataset, Sound):
     def get_item(self, idx):
         """ Function for getting periodogram """
         # read sound samples from file
-        sound_samples, sampling_rate, labels = Sound.read_sound(self, idx=idx, raw=True)
+        sound_samples, sampling_rate, labels = Sound.read_sound(self, idx=idx, raw=False)
+        sound_samples = sound_samples - sound_samples.mean()
 
         periodogram = abs(np.fft.rfft(sound_samples, sampling_rate))[1:]
         if self.scale_db:
@@ -50,6 +51,6 @@ class PeriodogramDataset(Dataset, Sound):
 
         periodogram = periodogram.astype(np.float32)
         return (periodogram, frequencies), labels
-        
+
     def __len__(self):
         return len(self.filenames)
