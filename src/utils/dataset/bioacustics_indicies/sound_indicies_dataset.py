@@ -131,7 +131,7 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
 
             spectro, freqs = compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
-            value, temporal_values = compute_BI(spectro, freqs, np.iinfo(sound_samples[0]).max, min_freq=20, max_freq=10000)
+            value, temporal_values = compute_BI(spectro, freqs, np.iinfo(sound_samples[0]).max, min_freq=10, max_freq=5000)
 
             return (value, temporal_values), label
 

@@ -125,8 +125,8 @@ def compute_BI(spectro, frequencies, dbfs_max, min_freq = 2000, max_freq = 8000)
     spectre_BI_mean = 10 * np.log10 (np.mean(10 ** (spectro_BI/10), axis=1))     # Compute the mean for each frequency (the output is a spectre). This is not exactly the mean, but it is equivalent to the R code to: return(a*log10(mean(10^(x/a))))
     spectre_BI_mean_segment =  spectre_BI_mean[min_freq_bin:max_freq_bin]   # Segment between min_freq and max_freq
     spectre_BI_mean_segment_normalized = spectre_BI_mean_segment - min(spectre_BI_mean_segment) # Normalization: set the minimum value of the frequencies to zero.
-    area = np.sum(spectre_BI_mean_segment_normalized / (frequencies[1]-frequencies[0]))   # Compute the area under the spectre curve. Equivalent in the R code to: left_area <- sum(specA_left_segment_normalized * rows_width)
-
+    # area = np.sum(spectre_BI_mean_segment_normalized * (frequencies[1]-frequencies[0]))   # Compute the area under the spectre curve. Equivalent in the R code to: left_area <- sum(specA_left_segment_normalized * rows_width)
+    area = np.trapz(spectre_BI_mean_segment_normalized, frequencies)    # tymon: I belive that upper row might be not proper row 
     return area, spectre_BI_mean_segment_normalized
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
