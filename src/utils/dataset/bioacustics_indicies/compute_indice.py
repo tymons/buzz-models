@@ -23,7 +23,7 @@ __status__ = "Development"
 from scipy import signal, fftpack
 import numpy as np
 import matplotlib.pyplot as plt
-
+import antropy as ant
 
 def compute_spectrogram(sig, sampling_rate, windowLength=512, windowHop= 256, square=True, windowType='hanning', centered=False, normalized = False ):
     """
@@ -95,10 +95,6 @@ def compute_ACI(spectro, j_bin):
 
     return main_value, temporal_values # return main (global) value, temporal values
 
-
-
-
-
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 def compute_BI(spectro, frequencies, dbfs_max, min_freq = 2000, max_freq = 8000):
     """
@@ -125,8 +121,7 @@ def compute_BI(spectro, frequencies, dbfs_max, min_freq = 2000, max_freq = 8000)
     spectre_BI_mean = 10 * np.log10 (np.mean(10 ** (spectro_BI/10), axis=1))     # Compute the mean for each frequency (the output is a spectre). This is not exactly the mean, but it is equivalent to the R code to: return(a*log10(mean(10^(x/a))))
     spectre_BI_mean_segment =  spectre_BI_mean[min_freq_bin:max_freq_bin]   # Segment between min_freq and max_freq
     spectre_BI_mean_segment_normalized = spectre_BI_mean_segment - min(spectre_BI_mean_segment) # Normalization: set the minimum value of the frequencies to zero.
-    # area = np.sum(spectre_BI_mean_segment_normalized * (frequencies[1]-frequencies[0]))   # Compute the area under the spectre curve. Equivalent in the R code to: left_area <- sum(specA_left_segment_normalized * rows_width)
-    area = np.trapz(spectre_BI_mean_segment_normalized, frequencies)    # tymon: I belive that upper row might be not proper row 
+    area = np.sum(spectre_BI_mean_segment_normalized / (frequencies[1]-frequencies[0]))   # Compute the area under the spectre curve. Equivalent in the R code to: left_area <- sum(specA_left_segment_normalized * rows_width)
     return area, spectre_BI_mean_segment_normalized
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -145,12 +140,8 @@ def compute_SH(spectro):
     #temporal_values = [- sum([y * np.log2(y) for y in frame]) / (np.sum(frame) * np.log2(N)) for frame in spectro.T]
     return main_value
 
-
-
-
-
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def compute_TH(file, integer=True):
+def compute_TH(sig):
     """
     Compute Temporal Entropy of Shannon from an audio signal.
 
@@ -159,11 +150,6 @@ def compute_TH(file, integer=True):
 
     Ported from the seewave R package.
     """
-    if integer:
-        sig=file.sig_int
-    else:
-        sig=file.sig_float
-
     #env = abs(signal.hilbert(sig)) # Modulo of the Hilbert Envelope
     env = abs(signal.hilbert(sig, fftpack.helper.next_fast_len(len(sig)))) # Modulo of the Hilbert Envelope, computed with the next fast length window
 
@@ -171,9 +157,17 @@ def compute_TH(file, integer=True):
     N = len(env)
     return - sum([y * np.log2(y) for y in env]) / np.log2(N)
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+def compute_H(sig):
+    """
+    Compute spectral entropy.
+
+    sig: signal
+    """
+    
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def compute_NDSI(file, windowLength = 1024, anthrophony=[1000,2000], biophony=[2000,11000]):
+def compute_NDSI(sig_float, sampling_rate, windowLength = 1024, anthrophony=[1000,2000], biophony=[2000,11000]):
     """
     Compute Normalized Difference Sound Index from an audio signal.
     This function compute an estimate power spectral density using Welch's method.
@@ -189,7 +183,7 @@ def compute_NDSI(file, windowLength = 1024, anthrophony=[1000,2000], biophony=[2
 
     #frequencies, pxx = signal.welch(file.sig_float, fs=file.sr, window='hamming', nperseg=windowLength, noverlap=windowLength/2, nfft=windowLength, detrend=False, return_onesided=True, scaling='density', axis=-1) # Estimate power spectral density using Welch's method
     # TODO change of detrend for apollo
-    frequencies, pxx = signal.welch(file.sig_float, fs=file.sr, window='hamming', nperseg=windowLength, noverlap=windowLength/2, nfft=windowLength, detrend='constant', return_onesided=True, scaling='density', axis=-1) # Estimate power spectral density using Welch's method
+    frequencies, pxx = signal.welch(sig_float, fs=sampling_rate, window='hamming', nperseg=windowLength, noverlap=windowLength/2, nfft=windowLength, detrend='constant', return_onesided=True, scaling='density', axis=-1) # Estimate power spectral density using Welch's method
     avgpow = pxx * frequencies[1] # use a rectangle approximation of the integral of the signal's power spectral density (PSD)
     #avgpow = avgpow / np.linalg.norm(avgpow, ord=2) # Normalization (doesn't change the NDSI values. Slightly differ from the matlab code).
 
