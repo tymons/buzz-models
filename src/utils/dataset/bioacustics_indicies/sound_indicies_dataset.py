@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 class SoundIndiciesDataset(Dataset, sound.Sound):
     def __init__(self, filenames, hives, indicator_type, nfft, hop_len=512, \
                     aci_j_samples=None, adi_freq_step=None, scale_db=False, 
-                    ndsi_anthrophony=(10, 250), ndsi_biophony=(250, 3000)):
+                    ndsi_anthrophony=(10, 250), ndsi_biophony=(250, 3000), db_threshold=-50):
         """
         Parameters:
             filenames (list(str)): list of filenames
@@ -39,6 +39,7 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
 
         # adi/ei related params
         self.freq_step = adi_freq_step          # freq step for ADI/AEI
+        self.db_threshold = db_threshold        # threshold for ADI/AEI
 
         # ndsi related params
         self.ndsi_anthrophony = ndsi_anthrophony if type(ndsi_anthrophony) == tuple else tuple(ndsi_anthrophony)
@@ -97,11 +98,11 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             """
             assert self.freq_step is not None
             sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
-
-            spectrogram, freqs = indice.compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
-                                                                                                    # as librosa implementatin from calculate_spectrogram need floats
+            spectrogram, freqs = indice.compute_spectrogram(sound_samples, sampling_rate, square=True,
+                                    windowLength=self.nfft, windowHop=self.hop_len, db_scale=True) # here we use numpy spectrogram implementation
+                                                                                                   # as librosa implementatin from calculate_spectrogram need floats
             max_freq = int((freqs[-1]+freqs[1]))
-            value = indice.compute_ADI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), dbfs_threshold=-50, \
+            value = indice.compute_ADI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), dbfs_threshold=self.db_threshold, \
                                     max_freq=max_freq, freq_step=self.freq_step)
 
             return (value, None), label
@@ -118,10 +119,11 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             assert self.freq_step is not None
             sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
 
-            spectrogram, freqs = indice.compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
-                                                                                                    # as librosa implementatin from calculate_spectrogram need floats
+            spectrogram, freqs = indice.compute_spectrogram(sound_samples, sampling_rate, square=True,
+                                    windowLength=self.nfft, windowHop=self.hop_len, db_scale=True) # here we use numpy spectrogram implementation
+                                                                                                            # as librosa implementatin from calculate_spectrogram need floats
             max_freq = int((freqs[-1]+freqs[1]))
-            value = indice.compute_AEI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), dbfs_threshold=-50, \
+            value = indice.compute_AEI(spectrogram, np.iinfo(sound_samples[0]).max, freq_band_Hz=max_freq/len(freqs), dbfs_threshold=self.db_threshold, \
                                     max_freq=max_freq, freq_step=self.freq_step)
 
             return (value, None), label
@@ -136,7 +138,8 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             """
             sound_samples, sampling_rate, label =  sound.Sound.read_sound(self, idx, raw=True)
 
-            spectro, freqs = indice.compute_spectrogram(sound_samples, sampling_rate, square=False)    # here we use numpy spectrogram implementation
+            spectro, freqs = indice.compute_spectrogram(sound_samples, sampling_rate, windowLength=self.nfft, windowHop=self.hop_len, db_scale=self.scale_db, square=True)    
+                                                                                                # here we use numpy spectrogram implementation
                                                                                                 # as librosa implementatin from calculate_spectrogram need floats
             value, temporal_values = indice.compute_BI(spectro, freqs, np.iinfo(sound_samples[0]).max, min_freq=10, max_freq=5000)
 
@@ -157,6 +160,11 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             value = indice.compute_NDSI(sound_samples, sampling_rate, windowLength=self.nfft, anthrophony=self.ndsi_anthrophony, biophony=self.ndsi_biophony)
             return (value, None), label
 
+        def get_ZCR():
+            sound_samples, _, label =  sound.Sound.read_sound(self, idx, raw=True)
+            zcr_frames = indice.compute_zcr(sound_samples, windowLength=self.nfft, windowHop=self.hop_len)
+            return (np.mean(zcr_frames), zcr_frames), label
+
         feature, label = {
             self.SoundIndicator.ACI:    get_ACI,  
             self.SoundIndicator.ADI:    get_ADI, 
@@ -164,6 +172,7 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
             self.SoundIndicator.BI:     get_BI,
             self.SoundIndicator.H:      get_H,
             self.SoundIndicator.NDSI:   get_NDSI,
+            self.SoundIndicator.ZCR:    get_ZCR,
         }.get(self.indicator_type)()
 
         return [feature], label
@@ -178,3 +187,4 @@ class SoundIndiciesDataset(Dataset, sound.Sound):
         BI = 'bi'       # bioacustic index
         H = 'entropy'   # temporal entropy
         NDSI = 'ndsi'   # normalized difference soundscape index
+        ZCR = 'zcr'     # zero crossing rate

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 
 """
     Set of functions to compute acoustic indices in the framework of Soundscape Ecology.
@@ -25,7 +26,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import antropy as ant
 
-def compute_spectrogram(sig, sampling_rate, windowLength=512, windowHop= 256, square=True, windowType='hanning', centered=False, normalized = False ):
+def compute_spectrogram(sig, sampling_rate, windowLength=512, windowHop= 256, square=True, windowType='hanning', centered=False, normalized = False, db_scale=False):
     """
     Compute a spectrogram of an audio signal.
     Return a list of list of values as the spectrogram, and a list of frequencies.
@@ -62,6 +63,9 @@ def compute_spectrogram(sig, sampling_rate, windowLength=512, windowHop= 256, sq
 
     if normalized:
         spectro = spectro/np.max(spectro) # set the maximum value to 1 y
+
+    if db_scale:
+        spectro = 20 * np.log10(spectro/np.iinfo(sig[0]).max)
 
     frequencies = [e * (sampling_rate//2) / float(windowLength / 2) for e in range(halfWindowLength)] # vector of frequency<-bin in the spectrogram
     return spectro, frequencies
@@ -252,7 +256,6 @@ def compute_ADI(pcm_spectro, dbfs_max, freq_band_Hz, max_freq=10000, dbfs_thresh
 
     bands_Hz = range(0, max_freq, freq_step)
     bands_bin = [f / freq_band_Hz for f in bands_Hz]
-
     spec_ADI = 20*np.log10(pcm_spectro/dbfs_max)
     spec_ADI_bands = [spec_ADI[int(bands_bin[k]):int(bands_bin[k]+bands_bin[1]),] for k in range(len(bands_bin))]
 
@@ -278,7 +281,7 @@ def compute_ADI(pcm_spectro, dbfs_max, freq_band_Hz, max_freq=10000, dbfs_thresh
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def compute_zcr(file, windowLength=512, windowHop= 256):
+def compute_zcr(sig, windowLength=512, windowHop= 256):
     """
     Compute the Zero Crossing Rate of an audio signal.
 
@@ -288,10 +291,7 @@ def compute_zcr(file, windowLength=512, windowHop= 256):
 
     return: a list of values (number of zero crossing for each window)
     """
-
-
-    sig = file.sig_int # Signal on integer values
-
+    sig = sig - int(np.mean(sig))
     times = range(0, len(sig)- windowLength +1, windowHop)
     frames = [sig[i:i+windowLength] for i in times]
     return [len(np.where(np.diff(np.signbit(x)))[0])/float(windowLength) for x in frames]
